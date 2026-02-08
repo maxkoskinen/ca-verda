@@ -1,0 +1,53 @@
+# pyproject.toml (corrected)
+[project]
+name = "verda-cloud-provider"
+version = "0.0.1"
+requires-python = ">=3.11"
+dependencies = [
+    "grpcio>=1.76.0",
+    "grpcio-tools>=1.76.0",
+    "grpcio-reflection>=1.76.0",
+    "protobuf>=5.29.0",
+    "PyYAML>=6.0.3",
+    "verda>=1.19.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+verda-cloud-provider = "verda_cloud_provider.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["verda_cloud_provider*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+exclude = [
+    "build",
+    "dist",
+    ".venv",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra"
+testpaths = ["tests"]
+
+markers = [
+    "verda_live: tests that hit the real Verda API and may create instances",
+]

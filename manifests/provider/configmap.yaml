@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verda-provider-config
+  namespace: kube-system
+data:
+  config.yaml: |
+    node_groups:
+      gpu-workers:
+        instance_type: "1V100.6V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        location: "FIN-03"
+        ssh_key_ids:
+          - "your-ssh-key-id-here"
+        startup_script_id: "your-startup-script-id-here"
+        hourly_price: 0.60
+        contract: "PAY_AS_YOU_GO"
+        pricing: "FIXED_PRICE"
+        labels:
+          verda.com/gpu: "v100"
+          node-role.kubernetes.io/gpu-worker: "true"

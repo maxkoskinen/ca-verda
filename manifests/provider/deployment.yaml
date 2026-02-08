@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verda-cloud-provider
+  namespace: kube-system
+  labels:
+    app: verda-cloud-provider
+    component: cloud-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verda-cloud-provider
+  template:
+    metadata:
+      labels:
+        app: verda-cloud-provider
+        component: cloud-provider
+    spec:
+      serviceAccountName: verda-cloud-provider
+      containers:
+      - name: provider
+        image: verda-cloud-provider:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8086
+          name: grpc
+          protocol: TCP
+        env:
+        - name: VERDA_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: verda-credentials
+              key: client-id
+        - name: VERDA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: verda-credentials
+              key: client-secret
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        args:
+        - "--config=/config/config.yaml"
+        - "--port=8086"
+        - "--log-level=INFO"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          tcpSocket:
+            port: 8086
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 8086
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: verda-provider-config
+      restartPolicy: Always

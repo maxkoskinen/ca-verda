@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-test
+  namespace: default
+  labels:
+    app: gpu-test
+    purpose: autoscaler-testing
+spec:
+  parallelism: 5
+  completions: 5
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: gpu-test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: cuda-vectoradd
+        image: nvidia/cuda:11.4.0-base-ubuntu20.04
+        command:
+          - /bin/bash
+          - -c
+          - |
+            echo "Testing GPU availability..."
+            nvidia-smi
+            echo "Running vector addition test..."
+            sleep 300  # Simulate 5 minute workload
+            echo "Test complete!"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+          limits:
+            nvidia.com/gpu: 1
+      nodeSelector:
+        verda.com/gpu: "v100"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
