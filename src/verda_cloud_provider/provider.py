@@ -42,31 +42,20 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
             logging.critical(f"Failed to load configuration: {e}")
             raise e
 
-        self.target_sizes: dict[str, int] = {}
         self.state_store = InstanceStateStore()
         self.startup_script_id: str = ""
-        self._initialize_target_sizes()
+        self._initialize()
         self._initialize_startup_script()
 
-    def _initialize_target_sizes(self):
+    def _initialize(self):
         """Sync target sizes with actual cloud state on startup."""
         if not self.client:
             return
 
         try:
             instances = self.client.instances.get()
-
             # Sync state store with API
             self.state_store.sync_with_api(instances, self.node_groups_config)
-
-            # Initialize target sizes
-            for group_id, config in self.node_groups_config.items():
-                tracked = self.state_store.get_by_group(group_id)
-                count = len(tracked)
-                self.target_sizes[group_id] = max(count, config.min_size)
-                logger.info(
-                    f"Initialized {group_id}: {count} instances, target={self.target_sizes[group_id]}"
-                )
 
         except Exception as e:
             logger.error(f"Failed to initialize target sizes: {e}")
@@ -307,11 +296,6 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
         # Update target size to reflect actual successful creations
         actual_increase = len(created_instances)
-        if actual_increase > 0:
-            self.target_sizes[group_id] = current_target + actual_increase
-            logger.info(
-                f"Updated {group_id} target size to {self.target_sizes[group_id]} ({actual_increase}/{delta} successful)"
-            )
 
         if actual_increase < delta:
             context.set_code(grpc.StatusCode.ABORTED)
@@ -331,7 +315,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         group_id = request.id
         nodes_to_delete = request.nodes
 
-        if group_id not in self.target_sizes:
+        if group_id not in self.node_groups_config:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"Node group '{group_id}' not found")
             return externalgrpc_pb2.NodeGroupDeleteNodesResponse()
@@ -368,11 +352,12 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
         # Update target size
         if deleted_count > 0:
-            self.target_sizes[group_id] = max(
-                0, self.target_sizes[group_id] - deleted_count
-            )
+            new_target = len(self.state_store.get_by_group(group_id))
             logger.info(
-                f"Deleted {deleted_count} nodes from {group_id}, new target: {self.target_sizes[group_id]}"
+                "Deleted %d nodes from %s, new target: %d",
+                deleted_count,
+                group_id,
+                new_target,
             )
 
         return externalgrpc_pb2.NodeGroupDeleteNodesResponse()
@@ -384,11 +369,9 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         context: grpc.ServicerContext,
     ) -> externalgrpc_pb2.NodeGroupDecreaseTargetSizeResponse:
         group_id = request.id
-        delta = request.delta
-
-        if group_id in self.target_sizes:
-            new_size = self.target_sizes[group_id] + delta
-            self.target_sizes[group_id] = max(0, new_size)
+        if group_id not in self.node_groups_config:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details(f"Node group '{group_id}' not found")
 
         return externalgrpc_pb2.NodeGroupDecreaseTargetSizeResponse()
 
@@ -468,20 +451,6 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
             # Reconcile state store
             self.state_store.sync_with_api(instances, self.node_groups_config)
-
-            # Update target sizes based on actual state
-            for group_id in self.node_groups_config:
-                tracked = self.state_store.get_by_group(group_id)
-                actual_count = len(tracked)
-
-                # Only update if there's a discrepancy
-                if self.target_sizes.get(group_id, 0) != actual_count:
-                    logger.warning(
-                        f"Target size mismatch for {group_id}: "
-                        f"expected {self.target_sizes.get(group_id, 0)}, actual {actual_count}"
-                    )
-                    # Trust the actual state from API
-                    self.target_sizes[group_id] = actual_count
 
             logger.debug("Refresh completed successfully")
 
