@@ -208,7 +208,7 @@ Key cluster-autoscaler flags (configured in `manifests/autoscaler/deployment.yam
 
 ## License
 
-[Your License Here]
+[MIT License](LISENCE)
 
 ## Resources
 
