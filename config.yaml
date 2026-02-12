@@ -14,3 +14,19 @@ node_groups:
     labels:
       verda.com/gpu: "true"
       k8s.io/role: "cloud-worker"
+
+  worker-cpu-1:
+    instance_type: "CPU.4V.16G"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    location: "FIN-03"
+    ssh_key_ids:
+      - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+    startup_script_id: "script-uuid-here"
+    hourly_price: 0.60
+    contract: "SPOT"
+    pricing: "FIXED_PRICE"
+    labels:
+      verda.com/gpu: "true"
+      k8s.io/role: "cloud-worker"

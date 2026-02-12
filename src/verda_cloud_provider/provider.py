@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import override
 
 import grpc
+from google.protobuf.timestamp_pb2 import Timestamp
 from verda import VerdaClient
 from verda.constants import Actions, InstanceStatus
 
@@ -131,7 +132,8 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                 if remote_norm == local_norm:
                     matched_id = script.id
                     logger.info(
-                        "Reusing existing startup script %s for verda_init.sh", script.id
+                        "Reusing existing startup script %s for verda_init.sh",
+                        script.id,
                     )
                     break
 
@@ -160,26 +162,10 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         except Exception:
             logger.exception("Exception occurred while initializing startup script")
 
-    def _get_group_for_node_name(self, node_name: str) -> str | None:
-        """
-        Resolve node group from a Kubernetes node name.
-
-        Strategy:
-        1. Try state_store hostname lookup (most reliable, uses actual instances).
-        2. Fallback to hostname prefix matching against configured group IDs.
-        """
-        # 1) Prefer explicit mapping from state_store
-        record = self.state_store.get_by_hostname(node_name)
-        if record:
-            return record.node_group
-
-        # 2) Fallback: prefix-based mapping
-        for group_id in self.node_groups_config:
-            if node_name.startswith(f"{group_id}-"):
-                return group_id
-
-        return None
-
+    def _duration_hours(self, start: Timestamp, end: Timestamp) -> float:
+        start_s = start.ToDatetime().timestamp()
+        end_s = end.ToDatetime().timestamp()
+        return max(0.0, (end_s - start_s) / 3600.0)
 
     @override
     def NodeGroups(
@@ -204,25 +190,26 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         self,
         request: externalgrpc_pb2.NodeGroupForNodeRequest,
         context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupForNodeResponse:
-        # request.node contains providerID and name
-        # We use name to identify the group (prefix matching)
-        node_name = request.node.name
-        request.node.providerID
-        group_id = self._get_group_for_node_name(node_name)
+    ):
+        """
+        NodeGroupForNode returns the node group for the given node.
+        The node group id is an empty string if the node should not be
+        processed by cluster autoscaler.
+        """
+        node = request.node
 
-        if group_id:
-            config = self.node_groups_config[group_id]
+        rec = self.state_store.get_by_provider_id(node.providerID)
+        if rec:
+            cfg = self.node_groups_config[rec.node_group]
             return externalgrpc_pb2.NodeGroupForNodeResponse(
                 nodeGroup=externalgrpc_pb2.NodeGroup(
-                    id=group_id,
-                    minSize=config.min_size,
-                    maxSize=config.max_size,
-                    debug="Mapped by hostname prefix",
+                    id=rec.node_group,
+                    minSize=cfg.min_size,
+                    maxSize=cfg.max_size,
+                    debug="Mapped by providerID",
                 )
             )
 
-        # Empty response means no group found
         return externalgrpc_pb2.NodeGroupForNodeResponse()
 
     @override
@@ -231,9 +218,18 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         request: externalgrpc_pb2.NodeGroupTargetSizeRequest,
         context: grpc.ServicerContext,
     ) -> externalgrpc_pb2.NodeGroupTargetSizeResponse:
+        """
+        NodeGroup specific RPC functions
+        NodeGroupTargetSize returns the current target size of the node group.
+        It is possible that the number of nodes in Kubernetes is different
+        at the moment but should be equal to the size of a node group once everything stabilizes
+        (new nodes finish startup and registration or removed nodes are deleted completely).
+        """
         group_id = request.id
-        target = self.target_sizes.get(group_id, 0)
-        return externalgrpc_pb2.NodeGroupTargetSizeResponse(targetSize=target)
+
+        nodes = self.state_store.get_by_group(group_id)
+        number_of_nodes = len(nodes)
+        return externalgrpc_pb2.NodeGroupTargetSizeResponse(targetSize=number_of_nodes)
 
     @override
     def NodeGroupIncreaseSize(
@@ -254,7 +250,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
             return externalgrpc_pb2.NodeGroupIncreaseSizeResponse()
 
         config = self.node_groups_config[group_id]
-        current_target = self.target_sizes.get(group_id, 0)
+        current_target = len(self.state_store.get_by_group(group_id))
         new_target = current_target + delta
 
         if new_target > config.max_size:
@@ -286,7 +282,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                     location=config.location,
                     ssh_key_ids=config.ssh_key_ids,
                     startup_script_id=self.startup_script_id,
-                    contract=config.contract
+                    contract=config.contract,
                 )
 
                 # Track the instance
@@ -307,7 +303,6 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                 logger.error(
                     f"Failed to create instance {i + 1}/{delta} for {group_id}: {e}"
                 )
-                # If ANY creation fails, we still update target to reflect successful ones
                 break
 
         # Update target size to reflect actual successful creations
@@ -319,7 +314,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
             )
 
         if actual_increase < delta:
-            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            context.set_code(grpc.StatusCode.ABORTED)
             context.set_details(
                 f"Only {actual_increase}/{delta} instances created successfully"
             )
@@ -349,17 +344,11 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
             try:
                 instance_id = None
 
-                # Try to get instance ID from providerID first
                 if node.providerID and node.providerID.startswith("verda://"):
                     instance_id = node.providerID.replace("verda://", "")
                 else:
-                    # Fall back to hostname lookup in state store
-                    record = self.state_store.get_by_hostname(node.name)
-                    if record:
-                        instance_id = record.instance_id
-                    else:
-                        logger.warning(f"Cannot find instance ID for node {node.name}")
-                        continue
+                    logger.warning(f"Cannot find instance ID for node {node.name}")
+                    continue
 
                 if not instance_id:
                     logger.error(f"No instance ID found for node {node.name}")
@@ -434,7 +423,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
                 instances_proto.append(
                     externalgrpc_pb2.Instance(
-                        id=record.provider_id,
+                        id=record.instance_id,
                         status=externalgrpc_pb2.InstanceStatus(instanceState=status),
                     )
                 )
@@ -508,3 +497,24 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         """Clean up resources on shutdown."""
 
         return externalgrpc_pb2.CleanupResponse()
+
+    @override
+    def PricingNodePrice(
+        self,
+        request: externalgrpc_pb2.PricingNodePriceRequest,
+        context: grpc.ServicerContext,
+    ):
+        rec = self.state_store.get_by_provider_id(request.node.providerID)
+        if not rec:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("Unknown node/providerID")
+            return externalgrpc_pb2.PricingNodePriceResponse()
+
+        cfg = self.node_groups_config[rec.node_group]
+        if not getattr(cfg, "hourly_price", None):
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("No price configured")
+            return externalgrpc_pb2.PricingNodePriceResponse()
+
+        hours = self._duration_hours(request.startTimestamp, request.endTimestamp)
+        return externalgrpc_pb2.PricingNodePriceResponse(price=cfg.hourly_price * hours)

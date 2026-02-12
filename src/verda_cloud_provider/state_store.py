@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class InstanceRecord:
-    instance_id: str
-    hostname: str
-    node_group: str
+    instance_id: str  # verda instance id
+    hostname: str  # group_id-[rand-uuid[8]]
+    node_group: str  # group_id
     provider_id: str  # verda://<instance_id>
     created_at: str
     status: str
@@ -55,13 +55,6 @@ class InstanceStateStore:
         """Get instance by ID."""
         return self._cache.get(instance_id)
 
-    def get_by_hostname(self, hostname: str) -> InstanceRecord | None:
-        """Get instance by hostname."""
-        for record in self._cache.values():
-            if record.hostname == hostname:
-                return record
-        return None
-
     def get_by_group(self, node_group: str) -> list[InstanceRecord]:
         """Get all instances in a node group."""
         return [r for r in self._cache.values() if r.node_group == node_group]
@@ -102,3 +95,11 @@ class InstanceStateStore:
                         status=instance.status,
                     )
                     self.add_instance(record)
+
+    def get_by_provider_id(self, provider_id: str) -> InstanceRecord | None:
+        """Get instance record by Kubernetes providerID (verda://<instance_id>)."""
+        prefix = "verda://"
+        if not provider_id or not provider_id.startswith(prefix):
+            return None
+        instance_id = provider_id[len(prefix) :]
+        return self.get_instance(instance_id)

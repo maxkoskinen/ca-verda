@@ -66,7 +66,7 @@ def test_gpulpabel_and_refresh_and_cleanup(grpc_stub):
 
 @pytest.mark.verda_live
 def test_increase_and_delete_cycle(grpc_stub):
-    group_id = "worker-gpu-1"  # adjust to match your config
+    group_id = "worker-cpu-1"  # adjust to match your config
 
     # Get initial size
     size_before = grpc_stub.NodeGroupTargetSize(
@@ -90,10 +90,17 @@ def test_increase_and_delete_cycle(grpc_stub):
     nodes_resp = grpc_stub.NodeGroupNodes(
         externalgrpc_pb2.NodeGroupNodesRequest(id=group_id)
     )
+
     if nodes_resp.instances:
-        # Delete the first one
+        inst = nodes_resp.instances[0]
+
+        node = externalgrpc_pb2.ExternalGrpcNode(
+            # providerID is what your provider implementation uses first to resolve instance id
+            providerID=inst.id,
+            # optional; used only as a fallback lookup path in your provider
+            name="",
+        )
+
         grpc_stub.NodeGroupDeleteNodes(
-            externalgrpc_pb2.NodeGroupDeleteNodesRequest(
-                id=group_id, nodes=[nodes_resp.instances[0]]
-            )
+            externalgrpc_pb2.NodeGroupDeleteNodesRequest(id=group_id, nodes=[node])
         )

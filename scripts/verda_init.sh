@@ -11,7 +11,7 @@ K8S_TOKEN="abcdef.0123456789abcdef"
 K8S_CA_HASH="sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 # Get instance ID from Verda metadata service
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id || echo "unknown")
+INSTANCE_ID="$(cat /var/lib/cloud/data/instance-id 2>/dev/null || true)"
 # -------------------------------------------
 
 apt-get update
@@ -51,9 +51,8 @@ curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | \
   gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 chmod 0644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-cat </etc/apt/sources.list.d/kubernetes.list
-deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /
-EOF
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" \
+  | tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
 
 apt-get update
 apt-get install -y kubelet kubeadm kubectl

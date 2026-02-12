@@ -23,7 +23,7 @@ class NodeGroupConfig(BaseModel):
     location: str = "FIN-01"
     ssh_key_ids: list[str] = Field(default_factory=list)
     startup_script_id: str | None = None
-    contract: Literal['LONG_TERM', 'PAY_AS_YOU_GO', 'SPOT'] = "PAY_AS_YOU_GO"
+    contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "PAY_AS_YOU_GO"
     pricing: str = "FIXED_PRICE"
     hourly_price: float
     labels: dict[str, str] = Field(default_factory=dict)
