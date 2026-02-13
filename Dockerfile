@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-COPY src/verda_cloud_provider/ ./verda_cloud_provider/
+COPY src/ src/
 
 # Build wheel
 RUN pip install --no-cache-dir build && \
