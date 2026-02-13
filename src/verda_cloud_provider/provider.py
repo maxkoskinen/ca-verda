@@ -550,5 +550,6 @@ class VerdaCloudProvider(CloudProviderServicer):
 
     @override
     def NodeGroupGetOptions(self, request: NodeGroupAutoscalingOptionsRequest, context: ServicerContext) -> NodeGroupAutoscalingOptionsResponse:
-        defaults = request.defaults
-        return NodeGroupAutoscalingOptionsResponse(defaults)
+        return NodeGroupAutoscalingOptionsResponse(
+            nodeGroupAutoscalingOptions=request.defaults
+        )
