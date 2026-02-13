@@ -23,7 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["verda_cloud_provider*", "clusterautoscaler", "k8s"]
+include = ["verda_cloud_provider*", "clusterautoscaler*", "k8s*"]
 namespaces = true
 
 [tool.ruff]
