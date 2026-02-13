@@ -1,0 +1,9 @@
+[submodule "third_party/kubernetes/api"]
+	path = third_party/kubernetes/api
+	url = https://github.com/kubernetes/api.git
+[submodule "third_party/kubernetes/apimachinery"]
+	path = third_party/kubernetes/apimachinery
+	url = https://github.com/kubernetes/apimachinery.git
+[submodule "third_party/kubernetes/autoscaler"]
+	path = third_party/kubernetes/autoscaler
+	url = https://github.com/kubernetes/autoscaler.git
