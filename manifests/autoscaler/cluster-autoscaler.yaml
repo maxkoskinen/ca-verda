@@ -51,7 +51,7 @@ rules:
     resources: ["statefulsets", "replicasets", "daemonsets"]
     verbs: ["watch", "list", "get"]
   - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities"]
+    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities", "volumeattachments"]
     verbs: ["watch", "list", "get"]
   - apiGroups: ["batch", "extensions"]
     resources: ["jobs"]
@@ -63,6 +63,10 @@ rules:
     resourceNames: ["cluster-autoscaler"]
     resources: ["leases"]
     verbs: ["get", "update"]
+  - apiGroups: ["resource.k8s.io"]
+    resources: ["resourceclaims", "resourceslices", "deviceclasses"]
+    verbs: ["watch", "list", "get"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -139,7 +143,7 @@ spec:
     spec:
       serviceAccountName: cluster-autoscaler
       containers:
-        - image: registry.k8s.io/autoscaling/cluster-autoscaler:latest
+        - image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.35.0
           name: cluster-autoscaler
           resources:
             limits:
@@ -153,15 +157,16 @@ spec:
             - --v=5
             - --cloud-provider=externalgrpc
             - --cloud-config=/config/cloud-config
+            - --max-node-provision-time=5m
           volumeMounts:
-            - name: ssl-certs
-              mountPath: /etc/ssl/certs/ca-certificates.crt
-              readOnly: true
+            #- name: ssl-certs
+            #  mountPath: /etc/ssl/certs/ca-certificates.crt
+            #  readOnly: true
             - name: cloud-config
               mountPath: /config
               readOnly: true
-            - name: cluster-autoscaler-grpc-client-cert
-              mountPath: "/etc/ssl/client-cert"
+            #- name: cluster-autoscaler-grpc-client-cert
+            #  mountPath: "/etc/ssl/client-cert"
           imagePullPolicy: "Always"
       volumes:
         - name: ssl-certs

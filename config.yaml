@@ -30,3 +30,7 @@ node_groups:
     labels:
       verda.com/gpu: "true"
       k8s.io/role: "cloud-worker"
+    resources:
+      cpu: 4
+      memory_gb: 16
+      gpu_count: 0
