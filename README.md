@@ -212,7 +212,7 @@ Key cluster-autoscaler flags (configured in `manifests/autoscaler/deployment.yam
 
 ## Resources
 
-- [Verda Cloud Documentation](https://docs.verda.ai)
+- [Verda Cloud Documentation](https://docs.verda.com/)
 - [Kubernetes Cluster Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler)
 - [External gRPC Provider Guide](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/externalgrpc/README.md)
 - [Verda Python SDK](https://github.com/DataCrunch-io/datacrunch-python)
