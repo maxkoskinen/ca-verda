@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +21,7 @@ spec:
       serviceAccountName: verda-cloud-provider
       containers:
       - name: provider
-        image: verda-cloud-provider:latest
+        image: ghcr.io/maxkoskinen/ca-verda:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8086
@@ -37,9 +38,18 @@ spec:
             secretKeyRef:
               name: verda-credentials
               key: client-secret
+        - name: TLS_CERT_FILE
+          value: /etc/grpc-tls/tls.crt
+        - name: TLS_KEY_FILE
+          value: /etc/grpc-tls/tls.key
+        - name: TLS_CA_FILE
+          value: /etc/grpc-tls/ca.crt
         volumeMounts:
         - name: config
           mountPath: /config
+          readOnly: true
+        - name: grpc-tls
+          mountPath: /etc/grpc-tls
           readOnly: true
         args:
         - "--config=/config/config.yaml"
@@ -70,4 +80,8 @@ spec:
       - name: config
         configMap:
           name: verda-provider-config
+      - name: grpc-tls
+        secret:
+          secretName: verda-grpc-server-tls
+          defaultMode: 0400
       restartPolicy: Always

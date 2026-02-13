@@ -11,6 +11,7 @@ dependencies = [
     "verda>=1.19.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "jinja2>=3.1.6"
 ]
 
 [project.scripts]

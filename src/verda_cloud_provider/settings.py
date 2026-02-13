@@ -1,7 +1,8 @@
-from typing import Literal, get_args
+from typing import get_args
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
+from typing_extensions import Literal
 from verda.constants import Locations
 from verda.instances import Contract, Pricing
 
@@ -14,12 +15,17 @@ _ALLOWED_LOCATIONS = {
 _ALLOWED_CONTRACTS = set(get_args(Contract))
 _ALLOWED_PRICING = set(get_args(Pricing))
 
+class KubernetesConfig(BaseModel):
+    endpoint: str
+    token: str
+    ca_hash: str
 
 class ResourcesConfig(BaseModel):
     cpu: int = Field(gt=0)
     memory_gb: int = Field(gt=0)
     gpu_count: int = Field(ge=0, default=0)
     gpu_model: str | None = None
+    gpu_memory_gb: int | None = None
 
 
 class NodeGroupConfig(BaseModel):
@@ -31,9 +37,9 @@ class NodeGroupConfig(BaseModel):
     ssh_key_ids: list[str] = Field(default_factory=list)
     startup_script_id: str | None = None
     contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "PAY_AS_YOU_GO"
-    pricing: str = "FIXED_PRICE"
+    pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = "DYNAMIC_PRICE"
     hourly_price: float
-    resources: ResourcesConfig
+    resources: ResourcesConfig | None = None
     labels: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("max_size")
@@ -64,6 +70,7 @@ class NodeGroupConfig(BaseModel):
 
 class AppConfig(BaseModel):
     node_groups: dict[str, NodeGroupConfig]
+    kubernetes: KubernetesConfig
 
     @classmethod
     def load(cls, path: str = "config.yaml") -> "AppConfig":

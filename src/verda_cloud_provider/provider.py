@@ -18,6 +18,7 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     GPULabelResponse,
     Instance,
     NodeGroup,
+    NodeGroupAutoscalingOptions,
     NodeGroupAutoscalingOptionsRequest,
     NodeGroupAutoscalingOptionsResponse,
     NodeGroupDecreaseTargetSizeRequest,
@@ -50,14 +51,16 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc impor
 from k8s.io.api.core.v1 import generated_pb2 as core_v1
 from k8s.io.apimachinery.pkg.api.resource import generated_pb2 as resource_pb2
 from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
+from verda_cloud_provider.instance_metadata_service import InstanceMetadataCache
 from verda_cloud_provider.settings import AppConfig
+from verda_cloud_provider.startup_script_service import StartupScriptService
 from verda_cloud_provider.state_store import InstanceRecord, InstanceStateStore
 
 logger = logging.getLogger(__name__)
 
 
 class VerdaCloudProvider(CloudProviderServicer):
-    def __init__(self, config_path: str):
+    def __init__(self, app_config: AppConfig):
         client_id = os.environ.get("VERDA_CLIENT_ID", "")
         client_secret = os.environ.get("VERDA_CLIENT_SECRET", "")
         if not client_id or not client_secret:
@@ -66,9 +69,10 @@ class VerdaCloudProvider(CloudProviderServicer):
             )
 
         self.client: VerdaClient = VerdaClient(client_id, client_secret)
+        self.metadata_cache = InstanceMetadataCache(self.client)
 
         try:
-            self.app_config = AppConfig.load(config_path)
+            self.app_config = app_config
             self.node_groups_config = self.app_config.node_groups
             logging.info(
                 f"Loaded configuration for {len(self.node_groups_config)} node groups."
@@ -81,8 +85,13 @@ class VerdaCloudProvider(CloudProviderServicer):
 
         self.state_store = InstanceStateStore()
         self.startup_script_id: str = ""
+
+        self.startup_script_service = StartupScriptService(
+            client=self.client,
+            template_path="templates/verda_init.sh.j2",
+            k8s_config=self.app_config.kubernetes
+        )
         self._initialize()
-        self._initialize_startup_script()
 
     def _initialize(self):
         """Sync target sizes with actual cloud state on startup."""
@@ -93,100 +102,12 @@ class VerdaCloudProvider(CloudProviderServicer):
             instances = self.client.instances.get()
             # Sync state store with API
             self.state_store.sync_with_api(instances, self.node_groups_config)
+            # Refresh metadata
+            self.metadata_cache.refresh()
 
         except Exception as e:
-            logger.error(f"Failed to initialize target sizes: {e}")
+            logger.error(f"Failed to initialize: {e}")
 
-    def _initialize_startup_script(self) -> None:
-        """
-        Ensure the standard kubeadm/join startup script exists in Verda.
-
-        Logic:
-        - Read local scripts/verda_init.sh
-        - Compare (content-equal) with existing startup scripts in Verda
-        - If a match exists, reuse its ID
-        - Otherwise, create a new startup script and store its ID
-        """
-        if not self.client:
-            return
-
-        # Already initialized
-        if self.startup_script_id:
-            return
-
-        script_path = "scripts/verda_init.sh"
-        try:
-            with open(script_path, "r", encoding="utf-8") as f:
-                local_script = f.read()
-        except FileNotFoundError:
-            logger.error("Local startup script not found at %s", script_path)
-            return
-        except Exception:
-            logger.exception("Failed to read local startup script")
-            return
-
-        # Helper to normalize script text (ignore minor whitespace differences)
-        def _normalize(content: str) -> str:
-            lines = content.replace("\r\n", "\n").splitlines()
-            # Optionally drop comment-only lines to be less strict
-            normalized = []
-            for line in lines:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                # if stripped.startswith("#"):
-                #     continue
-                normalized.append(stripped)
-            return "\n".join(normalized)
-
-        local_norm = _normalize(local_script)
-
-        try:
-            matched_id: str | None = None
-
-            # List existing startup scripts from Verda
-            scripts = self.client.startup_scripts.get()
-            for script in scripts:
-                try:
-                    remote_norm = _normalize(script.script)
-                except AttributeError:
-                    logger.debug(
-                        "Startup script object missing 'script' field: %r", script
-                    )
-                    continue
-
-                if remote_norm == local_norm:
-                    matched_id = script.id
-                    logger.info(
-                        "Reusing existing startup script %s for verda_init.sh",
-                        script.id,
-                    )
-                    break
-
-            if matched_id is None:
-                logger.info("No matching startup script found, creating a new one")
-
-                new_script = self.client.startup_scripts.create(
-                    name="k8s-verda-init",
-                    script=local_script,
-                )
-                matched_id = new_script.id
-                logger.info("Created new startup script with id %s", matched_id)
-
-            self.startup_script_id = matched_id
-
-            # Optionally, if you want to default group configs with no explicit startup_script_id:
-            for group_id, cfg in self.node_groups_config.items():
-                if not cfg.startup_script_id:
-                    logger.info(
-                        "Setting default startup_script_id=%s for node group %s",
-                        matched_id,
-                        group_id,
-                    )
-                    cfg.startup_script_id = matched_id
-
-        except Exception:
-            logger.exception("Exception occurred while initializing startup script")
 
     def _duration_hours(self, start: Timestamp, end: Timestamp) -> float:
         start_s = start.ToDatetime().timestamp()
@@ -276,6 +197,18 @@ class VerdaCloudProvider(CloudProviderServicer):
             return NodeGroupIncreaseSizeResponse()
 
         config = self.node_groups_config[group_id]
+
+        try:
+            startup_script_id = self.startup_script_service.ensure_startup_script(
+                group_id=group_id,
+                labels=config.labels
+            )
+        except Exception as e:
+            logger.error(f"Failed to prepare startup script: {e}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Startup script error: {e}")
+            return NodeGroupIncreaseSizeResponse()
+
         current_target = len(self.state_store.get_by_group(group_id))
         new_target = current_target + delta
 
@@ -307,8 +240,9 @@ class VerdaCloudProvider(CloudProviderServicer):
                     description=f"Autoscaler node for {group_id}",
                     location=config.location,
                     ssh_key_ids=config.ssh_key_ids,
-                    startup_script_id=self.startup_script_id,
+                    startup_script_id=startup_script_id,
                     contract=config.contract,
+                    pricing=config.pricing
                 )
 
                 # Track the instance
@@ -487,6 +421,9 @@ class VerdaCloudProvider(CloudProviderServicer):
             # Reconcile state store
             self.state_store.sync_with_api(instances, self.node_groups_config)
 
+            # Get metadata for instances
+            self.metadata_cache.refresh()
+
             logger.debug("Refresh completed successfully")
 
         except Exception as e:
@@ -515,10 +452,18 @@ class VerdaCloudProvider(CloudProviderServicer):
             return PricingNodePriceResponse()
 
         cfg = self.node_groups_config[rec.node_group]
-        if not getattr(cfg, "hourly_price", None):
-            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-            context.set_details("No price configured")
-            return PricingNodePriceResponse()
+
+        metadata = self.metadata_cache.get(cfg.instance_type)
+        hourly_price = None
+
+        if metadata:
+            if cfg.pricing == "DYNAMIC_PRICE":
+                hourly_price = metadata.current_spot_price
+            else:
+                hourly_price = metadata.current_ondemand_price
+
+        if hourly_price is None:
+            hourly_price = cfg.hourly_price
 
         hours = self._duration_hours(request.startTimestamp, request.endTimestamp)
         return PricingNodePriceResponse(price=cfg.hourly_price * hours)
@@ -536,32 +481,62 @@ class VerdaCloudProvider(CloudProviderServicer):
 
         config = self.node_groups_config[group_id]
 
-        # 2. Build the Node object using YOUR generated protobuf classes
-        # Note: Resource quantities in proto are strings or specific messages,
-        # but k8s often expects the Quantity wrapper if complex.
-        # For simple CPU/Mem, strings usually work if the proto definition allows it,
-        # otherwise you need the resource_pb2.Quantity.
+        instance_type = config.instance_type
+        instance_metadata = self.metadata_cache.get(instance_type)
+
+        if not instance_metadata:
+            logger.warning(f"No metadata for group-id: {group_id}")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Group-id metadata not available: {config.instance_type}")
+            return NodeGroupTemplateNodeInfoResponse()
+
+        cpu_cores = instance_metadata.cpu_cores
+        memory_gb = instance_metadata.memory_gb
+        # gpu_count = instance_metadata.gpu_count
+        # gpu_memory = instance_metadata.gpu_memory_gb
+        # gpu_model = instance_metadata.gpu_model
+
+        # Calculate capacity and allocatable
+        cpu_millicores = cpu_cores * 1000
+        memory_bytes = memory_gb * 1024 * 1024 * 1024
+
+        # Reserve resources for system (kubelet, OS, etc.)
+        cpu_reserved_millicores = min(100, int(cpu_millicores * 0.06))  # 6% or 100m
+        memory_reserved_gb = max(0.5, memory_gb * 0.05)  # 5% or 0.5GB
+
+        allocatable_cpu_millicores = cpu_millicores - cpu_reserved_millicores
+        allocatable_memory_gb = memory_gb - memory_reserved_gb
+
+        # Build capacity resources
+        capacity = {
+            "cpu": resource_pb2.Quantity(string=f"{cpu_millicores}m"),
+            "memory": resource_pb2.Quantity(string=f"{int(memory_bytes)}"),
+            "pods": resource_pb2.Quantity(string="110"),
+        }
+        # Build allocatable resources
+        allocatable = {
+            "cpu": resource_pb2.Quantity(string=f"{allocatable_cpu_millicores}m"),
+            "memory": resource_pb2.Quantity(string=f"{int(allocatable_memory_gb * 1024 * 1024 * 1024)}"),
+            "pods": resource_pb2.Quantity(string="110"),
+        }
+
+        metadata = meta_v1.ObjectMeta(name=f"{group_id}-template")
+
+        # Assign labels
+        metadata.labels["node.kubernetes.io/instance-type"] = config.instance_type
+        metadata.labels["node.kubernetes.io/zone"] = config.location
+
+        for key, val in config.labels.items():
+            metadata.labels[key] = val
+        # build node status
+        nodeStatus = core_v1.NodeStatus(
+            capacity=capacity,
+            allocatable=allocatable
+        )
 
         node = core_v1.Node(
-            metadata=meta_v1.ObjectMeta(
-                name=f"{group_id}-template",
-                # labels={
-                #    "node.kubernetes.io/instance-type": config.instance_type,
-                #    "topology.kubernetes.io/zone": config.location,
-                # }
-            ),
-            status=core_v1.NodeStatus(
-                capacity={
-                    "cpu": resource_pb2.Quantity(string="4000m"),
-                    "memory": resource_pb2.Quantity(string="16Gi"),
-                    "pods": resource_pb2.Quantity(string="110"),
-                },
-                allocatable={
-                    "cpu": resource_pb2.Quantity(string="4000m"),
-                    "memory": resource_pb2.Quantity(string="15Gi"),
-                    "pods": resource_pb2.Quantity(string="110"),
-                },
-            ),
+            metadata=metadata,
+            status=nodeStatus
         )
 
         # 3. Serialize to bytes

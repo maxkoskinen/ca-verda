@@ -6,4 +6,7 @@ metadata:
   namespace: kube-system
 data:
   cloud-config: |-
-    address: "host.minikube.internal:8086"
+    address: "verda-cloud-provider.kube-system.svc.cluster.local:8086"
+    cert: "/etc/externalgrpc-client/tls.crt"
+    key: "/etc/externalgrpc-client/tls.key"
+    cacert: "/etc/externalgrpc-client/ca.crt"

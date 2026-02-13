@@ -5,19 +5,43 @@ metadata:
   namespace: kube-system
 data:
   config.yaml: |
+    kubernetes:
+        endpoint: "x.x.x.x:6443"
+        token: "abcdef.0123456789abcdef"
+        ca_hash: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     node_groups:
-      gpu-workers:
+      1V100.6V-FIN-03:
         instance_type: "1V100.6V"
-        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-12.6-docker"
         min_size: 0
         max_size: 10
         location: "FIN-03"
         ssh_key_ids:
-          - "your-ssh-key-id-here"
-        startup_script_id: "your-startup-script-id-here"
+          - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+        startup_script_id: "script-uuid-here"
         hourly_price: 0.60
-        contract: "PAY_AS_YOU_GO"
+        contract: "SPOT"
         pricing: "FIXED_PRICE"
         labels:
-          verda.com/gpu: "v100"
-          node-role.kubernetes.io/gpu-worker: "true"
+          verda.com/gpu: "true"
+          k8s.io/role: "cloud-worker"
+
+      CPU.4V.16G-FIN-03:
+        instance_type: "CPU.4V.16G"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        location: "FIN-03"
+        ssh_key_ids:
+          - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+        startup_script_id: "script-uuid-here"
+        hourly_price: 0.60
+        contract: "SPOT"
+        pricing: "FIXED_PRICE"
+        labels:
+          verda.com/gpu: "false"
+          k8s.io/role: "cloud-worker"
+        resources:
+          cpu: 4
+          memory_gb: 16
+          gpu_count: 0

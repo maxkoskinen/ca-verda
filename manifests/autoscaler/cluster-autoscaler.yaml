@@ -159,23 +159,18 @@ spec:
             - --cloud-config=/config/cloud-config
             - --max-node-provision-time=5m
           volumeMounts:
-            #- name: ssl-certs
-            #  mountPath: /etc/ssl/certs/ca-certificates.crt
-            #  readOnly: true
+            - name: grpc-client-tls
+              mountPath: /etc/externalgrpc-client
+              readOnly: true
             - name: cloud-config
               mountPath: /config
               readOnly: true
-            #- name: cluster-autoscaler-grpc-client-cert
-            #  mountPath: "/etc/ssl/client-cert"
           imagePullPolicy: "Always"
       volumes:
-        - name: ssl-certs
-          hostPath:
-            path: "/etc/ssl/certs/ca-certificates.crt" #/etc/ssl/certs/ca-bundle.crt for Amazon Linux Worker Nodes
         - name: cloud-config
           configMap:
             name: cluster-autoscaler-cloud-config
-        - name: cluster-autoscaler-grpc-client-cert
+        - name: grpc-client-tls
           secret:
             secretName: cluster-autoscaler-grpc-client-cert
             defaultMode: 0400
