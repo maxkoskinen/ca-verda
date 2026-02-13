@@ -159,9 +159,9 @@ spec:
             - --cloud-config=/config/cloud-config
             - --max-node-provision-time=5m
           volumeMounts:
-            - name: grpc-client-tls
-              mountPath: /etc/externalgrpc-client
-              readOnly: true
+            #- name: grpc-client-tls
+            #  mountPath: /etc/externalgrpc-client
+            #  readOnly: true
             - name: cloud-config
               mountPath: /config
               readOnly: true
@@ -170,7 +170,7 @@ spec:
         - name: cloud-config
           configMap:
             name: cluster-autoscaler-cloud-config
-        - name: grpc-client-tls
-          secret:
-            secretName: cluster-autoscaler-grpc-client-cert
-            defaultMode: 0400
+        #- name: grpc-client-tls
+        #  secret:
+        #    secretName: cluster-autoscaler-grpc-client-cert
+        #    defaultMode: 0400

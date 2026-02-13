@@ -10,7 +10,7 @@ data:
         token: "abcdef.0123456789abcdef"
         ca_hash: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     node_groups:
-      1V100.6V-FIN-03:
+      1V100-6V-FIN-03:
         instance_type: "1V100.6V"
         image: "ubuntu-24.04-cuda-12.6-docker"
         min_size: 0
@@ -26,7 +26,7 @@ data:
           verda.com/gpu: "true"
           k8s.io/role: "cloud-worker"
 
-      CPU.4V.16G-FIN-03:
+      CPU-4V-16G-FIN-03:
         instance_type: "CPU.4V.16G"
         image: "ubuntu-24.04-cuda-12.6-docker"
         min_size: 0

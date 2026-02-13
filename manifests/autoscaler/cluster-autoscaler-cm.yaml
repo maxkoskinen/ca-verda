@@ -7,6 +7,9 @@ metadata:
 data:
   cloud-config: |-
     address: "verda-cloud-provider.kube-system.svc.cluster.local:8086"
-    cert: "/etc/externalgrpc-client/tls.crt"
-    key: "/etc/externalgrpc-client/tls.key"
-    cacert: "/etc/externalgrpc-client/ca.crt"
+
+
+
+#cert: "/etc/externalgrpc-client/tls.crt"
+#key: "/etc/externalgrpc-client/tls.key"
+#cacert: "/etc/externalgrpc-client/ca.crt"

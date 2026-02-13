@@ -22,7 +22,7 @@ spec:
       containers:
       - name: provider
         image: ghcr.io/maxkoskinen/ca-verda:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 8086
           name: grpc
@@ -38,19 +38,19 @@ spec:
             secretKeyRef:
               name: verda-credentials
               key: client-secret
-        - name: TLS_CERT_FILE
-          value: /etc/grpc-tls/tls.crt
-        - name: TLS_KEY_FILE
-          value: /etc/grpc-tls/tls.key
-        - name: TLS_CA_FILE
-          value: /etc/grpc-tls/ca.crt
+        #- name: TLS_CERT_FILE
+        #  value: /etc/grpc-tls/tls.crt
+        #- name: TLS_KEY_FILE
+        #  value: /etc/grpc-tls/tls.key
+        #- name: TLS_CA_FILE
+        #  value: /etc/grpc-tls/ca.crt
         volumeMounts:
         - name: config
           mountPath: /config
           readOnly: true
-        - name: grpc-tls
-          mountPath: /etc/grpc-tls
-          readOnly: true
+        #- name: grpc-tls
+        #  mountPath: /etc/grpc-tls
+        #  readOnly: true
         args:
         - "--config=/config/config.yaml"
         - "--port=8086"
@@ -80,8 +80,8 @@ spec:
       - name: config
         configMap:
           name: verda-provider-config
-      - name: grpc-tls
-        secret:
-          secretName: verda-grpc-server-tls
-          defaultMode: 0400
-      restartPolicy: Always
+      #- name: grpc-tls
+      #  secret:
+      #    secretName: verda-grpc-server-tls
+      #    defaultMode: 0400
+      #restartPolicy: Always
