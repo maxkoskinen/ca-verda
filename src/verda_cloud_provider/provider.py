@@ -519,16 +519,16 @@ class VerdaCloudProvider(CloudProviderServicer):
             "memory": resource_pb2.Quantity(string=f"{int(allocatable_memory_gb * 1024 * 1024 * 1024)}"),
             "pods": resource_pb2.Quantity(string="110"),
         }
-        # Build labels
-        labels_dict = {}
-        labels_dict["node.kubernetes.io/instance-type"] = config.instance_type
-        labels_dict["node.kubernetes.io/zone"] = config.location
-
+        labels_dict = {
+            "node.kubernetes.io/instance-type": f"{config.instance_type}",
+            "node.kubernetes.io/zone": f"{config.location}",
+        }
         for key, val in config.labels.items():
-            labels_dict[key] = val
+            labels_dict[f"{key}"] = f"{val}"
 
         metadata = meta_v1.ObjectMeta(
             name=f"{group_id}-template",
+            labels=labels_dict
         )
         metadata.labels.update(labels_dict)
 
