@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import override
 
 import grpc
@@ -375,7 +375,7 @@ class VerdaCloudProvider(CloudProviderServicer):
 
                 instances_proto.append(
                     Instance(
-                        id=record.instance_id,
+                        id=record.provider_id,
                         status=GRPCInstanceStatus(instanceState=status),
                     )
                 )
@@ -530,7 +530,6 @@ class VerdaCloudProvider(CloudProviderServicer):
             name=f"{group_id}-template",
             labels=labels_dict
         )
-        metadata.labels.update(labels_dict)
 
         # build node status
         nodeStatus = core_v1.NodeStatus(
@@ -550,9 +549,6 @@ class VerdaCloudProvider(CloudProviderServicer):
         return NodeGroupTemplateNodeInfoResponse(nodeBytes=node_bytes)
 
     @override
-    def NodeGroupGetOptions(
-        self, request: NodeGroupAutoscalingOptionsRequest, context: ServicerContext
-    ):
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("NodeGroupTemplateNodeInfo not implemented")
-        return NodeGroupAutoscalingOptionsResponse()
+    def NodeGroupGetOptions(self, request: NodeGroupAutoscalingOptionsRequest, context: ServicerContext) -> NodeGroupAutoscalingOptionsResponse:
+        defaults = request.defaults
+        return NodeGroupAutoscalingOptionsResponse(defaults)

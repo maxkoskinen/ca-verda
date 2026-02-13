@@ -43,8 +43,9 @@ apt-get install -y containerd
 mkdir -p /etc/containerd
 containerd config default >/etc/containerd/config.toml
 
-# Enable systemd cgroup driver (required for kubeadm)
+# Enable systemd cgroup driver and cri
 sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+sed -i 's/^disabled_plugins \+= \+\["cri"\]/#&/' /etc/containerd/config.toml
 
 systemctl enable --now containerd
 
@@ -82,7 +83,8 @@ if [ ! -f /etc/kubernetes/kubelet.conf ]; then
   echo "Joining Kubernetes cluster..."
   kubeadm join "${K8S_ENDPOINT}" \
     --token "${K8S_TOKEN}" \
-    --discovery-token-ca-cert-hash "${K8S_CA_HASH}"
+    --discovery-token-ca-cert-hash "${K8S_CA_HASH}" \
+    --cri-socket unix:///var/run/containerd/containerd.sock
 
   echo "Successfully joined cluster!"
 else
