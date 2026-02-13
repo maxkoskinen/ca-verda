@@ -6,9 +6,11 @@ import grpc
 from dotenv import load_dotenv
 from grpc_reflection.v1alpha import reflection
 
-from verda_cloud_provider.gen.externalgrpc import (
-    externalgrpc_pb2,
-    externalgrpc_pb2_grpc,
+from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
+    DESCRIPTOR,
+)
+from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc import (
+    add_CloudProviderServicer_to_server,
 )
 from verda_cloud_provider.provider import VerdaCloudProvider
 from verda_cloud_provider.utils.logging import setup_logging
@@ -29,10 +31,10 @@ def serve(config_path: str, port: int):
         logging.fatal(f"Failed to initialize provider: {e}")
         sys.exit(1)
 
-    externalgrpc_pb2_grpc.add_CloudProviderServicer_to_server(provider, server)
+    add_CloudProviderServicer_to_server(provider, server)
 
     SERVICE_NAMES = (
-        externalgrpc_pb2.DESCRIPTOR.services_by_name["CloudProvider"].full_name,
+        DESCRIPTOR.services_by_name["CloudProvider"].full_name,
         reflection.SERVICE_NAME,
     )
     reflection.enable_server_reflection(SERVICE_NAMES, server)

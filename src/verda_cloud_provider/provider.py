@@ -6,20 +6,57 @@ from typing import override
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from grpc import ServicerContext
 from verda import VerdaClient
-from verda.constants import Actions, InstanceStatus
+from verda.constants import Actions
+from verda.constants import InstanceStatus as VerdaInstanceStatus
 
-from verda_cloud_provider.gen.externalgrpc import (
-    externalgrpc_pb2,
-    externalgrpc_pb2_grpc,
+from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
+    CleanupRequest,
+    CleanupResponse,
+    GPULabelRequest,
+    GPULabelResponse,
+    Instance,
+    NodeGroup,
+    NodeGroupAutoscalingOptionsRequest,
+    NodeGroupAutoscalingOptionsResponse,
+    NodeGroupDecreaseTargetSizeRequest,
+    NodeGroupDecreaseTargetSizeResponse,
+    NodeGroupDeleteNodesRequest,
+    NodeGroupDeleteNodesResponse,
+    NodeGroupForNodeRequest,
+    NodeGroupForNodeResponse,
+    NodeGroupIncreaseSizeRequest,
+    NodeGroupIncreaseSizeResponse,
+    NodeGroupNodesRequest,
+    NodeGroupNodesResponse,
+    NodeGroupsRequest,
+    NodeGroupsResponse,
+    NodeGroupTargetSizeRequest,
+    NodeGroupTargetSizeResponse,
+    NodeGroupTemplateNodeInfoRequest,
+    NodeGroupTemplateNodeInfoResponse,
+    PricingNodePriceRequest,
+    PricingNodePriceResponse,
+    RefreshRequest,
+    RefreshResponse,
 )
+from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
+    InstanceStatus as GRPCInstanceStatus,
+)
+from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc import (
+    CloudProviderServicer,
+)
+from k8s.io.api.core.v1 import generated_pb2 as core_v1
+from k8s.io.apimachinery.pkg.api.resource import generated_pb2 as resource_pb2
+from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
 from verda_cloud_provider.settings import AppConfig
 from verda_cloud_provider.state_store import InstanceRecord, InstanceStateStore
 
 logger = logging.getLogger(__name__)
 
 
-class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
+class VerdaCloudProvider(CloudProviderServicer):
     def __init__(self, config_path: str):
         client_id = os.environ.get("VERDA_CLIENT_ID", "")
         client_secret = os.environ.get("VERDA_CLIENT_SECRET", "")
@@ -158,27 +195,27 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
     @override
     def NodeGroups(
-        self, request: externalgrpc_pb2.NodeGroupsRequest, context: grpc.ServicerContext
-    ) -> externalgrpc_pb2.NodeGroupsResponse:
+        self, request: NodeGroupsRequest, context: ServicerContext
+    ) -> NodeGroupsResponse:
         """Return list of configured node groups."""
 
-        groups: list[externalgrpc_pb2.NodeGroup] = []
+        groups: list[NodeGroup] = []
         for name, config in self.node_groups_config.items():
             groups.append(
-                externalgrpc_pb2.NodeGroup(
+                NodeGroup(
                     id=name,
                     minSize=config.min_size,
                     maxSize=config.max_size,
                     debug=f"Verda Group {config.instance_type}",
                 )
             )
-        return externalgrpc_pb2.NodeGroupsResponse(nodeGroups=groups)
+        return NodeGroupsResponse(nodeGroups=groups)
 
     @override
     def NodeGroupForNode(
         self,
-        request: externalgrpc_pb2.NodeGroupForNodeRequest,
-        context: grpc.ServicerContext,
+        request: NodeGroupForNodeRequest,
+        context: ServicerContext,
     ):
         """
         NodeGroupForNode returns the node group for the given node.
@@ -190,8 +227,8 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         rec = self.state_store.get_by_provider_id(node.providerID)
         if rec:
             cfg = self.node_groups_config[rec.node_group]
-            return externalgrpc_pb2.NodeGroupForNodeResponse(
-                nodeGroup=externalgrpc_pb2.NodeGroup(
+            return NodeGroupForNodeResponse(
+                nodeGroup=NodeGroup(
                     id=rec.node_group,
                     minSize=cfg.min_size,
                     maxSize=cfg.max_size,
@@ -199,14 +236,14 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                 )
             )
 
-        return externalgrpc_pb2.NodeGroupForNodeResponse()
+        return NodeGroupForNodeResponse()
 
     @override
     def NodeGroupTargetSize(
         self,
-        request: externalgrpc_pb2.NodeGroupTargetSizeRequest,
-        context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupTargetSizeResponse:
+        request: NodeGroupTargetSizeRequest,
+        context: ServicerContext,
+    ) -> NodeGroupTargetSizeResponse:
         """
         NodeGroup specific RPC functions
         NodeGroupTargetSize returns the current target size of the node group.
@@ -218,14 +255,14 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
         nodes = self.state_store.get_by_group(group_id)
         number_of_nodes = len(nodes)
-        return externalgrpc_pb2.NodeGroupTargetSizeResponse(targetSize=number_of_nodes)
+        return NodeGroupTargetSizeResponse(targetSize=number_of_nodes)
 
     @override
     def NodeGroupIncreaseSize(
         self,
-        request: externalgrpc_pb2.NodeGroupIncreaseSizeRequest,
-        context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupIncreaseSizeResponse:
+        request: NodeGroupIncreaseSizeRequest,
+        context: ServicerContext,
+    ) -> NodeGroupIncreaseSizeResponse:
         """
         NodeGroupIncreaseSize increases the size of the node group.
         This function should wait until node group size is updated.
@@ -236,7 +273,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         if group_id not in self.node_groups_config:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"Node group '{group_id}' not found")
-            return externalgrpc_pb2.NodeGroupIncreaseSizeResponse()
+            return NodeGroupIncreaseSizeResponse()
 
         config = self.node_groups_config[group_id]
         current_target = len(self.state_store.get_by_group(group_id))
@@ -247,7 +284,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
             context.set_details(
                 f"Max size {config.max_size} exceeded (requested: {new_target})"
             )
-            return externalgrpc_pb2.NodeGroupIncreaseSizeResponse()
+            return NodeGroupIncreaseSizeResponse()
 
         logger.info(
             f"Increasing {group_id} by {delta} nodes (current: {current_target}, target: {new_target})"
@@ -303,14 +340,14 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                 f"Only {actual_increase}/{delta} instances created successfully"
             )
 
-        return externalgrpc_pb2.NodeGroupIncreaseSizeResponse()
+        return NodeGroupIncreaseSizeResponse()
 
     @override
     def NodeGroupDeleteNodes(
         self,
-        request: externalgrpc_pb2.NodeGroupDeleteNodesRequest,
-        context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupDeleteNodesResponse:
+        request: NodeGroupDeleteNodesRequest,
+        context: ServicerContext,
+    ) -> NodeGroupDeleteNodesResponse:
         """Delete specific nodes from the node group."""
         group_id = request.id
         nodes_to_delete = request.nodes
@@ -318,7 +355,7 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         if group_id not in self.node_groups_config:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"Node group '{group_id}' not found")
-            return externalgrpc_pb2.NodeGroupDeleteNodesResponse()
+            return NodeGroupDeleteNodesResponse()
 
         logger.info(f"Deleting {len(nodes_to_delete)} nodes from {group_id}")
 
@@ -360,30 +397,30 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
                 new_target,
             )
 
-        return externalgrpc_pb2.NodeGroupDeleteNodesResponse()
+        return NodeGroupDeleteNodesResponse()
 
     @override
     def NodeGroupDecreaseTargetSize(
         self,
-        request: externalgrpc_pb2.NodeGroupDecreaseTargetSizeRequest,
-        context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupDecreaseTargetSizeResponse:
+        request: NodeGroupDecreaseTargetSizeRequest,
+        context: ServicerContext,
+    ) -> NodeGroupDecreaseTargetSizeResponse:
         group_id = request.id
         if group_id not in self.node_groups_config:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details(f"Node group '{group_id}' not found")
 
-        return externalgrpc_pb2.NodeGroupDecreaseTargetSizeResponse()
+        return NodeGroupDecreaseTargetSizeResponse()
 
     @override
     def NodeGroupNodes(
         self,
-        request: externalgrpc_pb2.NodeGroupNodesRequest,
-        context: grpc.ServicerContext,
-    ) -> externalgrpc_pb2.NodeGroupNodesResponse:
+        request: NodeGroupNodesRequest,
+        context: ServicerContext,
+    ) -> NodeGroupNodesResponse:
         """NodeGroupNodes returns a list of all nodes that belong to this node group."""
         group_id = request.id
-        instances_proto: list[externalgrpc_pb2.Instance] = []
+        instances_proto: list[Instance] = []
 
         try:
             # Use state store for reliable tracking
@@ -397,17 +434,15 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
 
                 if not api_instance:
                     # Instance deleted outside of autoscaler - mark as deleting
-                    status = (
-                        externalgrpc_pb2.InstanceStatus.InstanceState.instanceDeleting
-                    )
+                    status = GRPCInstanceStatus.InstanceState.instanceCreating
                 else:
                     # Map Verda status to proto status
                     status = self._map_instance_status(api_instance.status)
 
                 instances_proto.append(
-                    externalgrpc_pb2.Instance(
+                    Instance(
                         id=record.instance_id,
-                        status=externalgrpc_pb2.InstanceStatus(instanceState=status),
+                        status=GRPCInstanceStatus(instanceState=status),
                     )
                 )
 
@@ -418,32 +453,32 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         except Exception as e:
             logger.error(f"Error fetching nodes for {group_id}: {e}")
 
-        return externalgrpc_pb2.NodeGroupNodesResponse(instances=instances_proto)
+        return NodeGroupNodesResponse(instances=instances_proto)
 
     def _map_instance_status(
         self, verda_status: str
-    ) -> externalgrpc_pb2.InstanceStatus.InstanceState:
+    ) -> GRPCInstanceStatus.InstanceState:
         """Map Verda instance status to gRPC proto status."""
         status_map = {
-            InstanceStatus.RUNNING: externalgrpc_pb2.InstanceStatus.InstanceState.instanceRunning,
-            InstanceStatus.PROVISIONING: externalgrpc_pb2.InstanceStatus.InstanceState.instanceCreating,
-            InstanceStatus.OFFLINE: externalgrpc_pb2.InstanceStatus.InstanceState.instanceCreating,
-            InstanceStatus.ORDERED: externalgrpc_pb2.InstanceStatus.InstanceState.instanceCreating,
+            VerdaInstanceStatus.RUNNING: GRPCInstanceStatus.InstanceState.instanceRunning,
+            VerdaInstanceStatus.PROVISIONING: GRPCInstanceStatus.InstanceState.instanceCreating,
+            VerdaInstanceStatus.OFFLINE: GRPCInstanceStatus.InstanceState.instanceCreating,
+            VerdaInstanceStatus.ORDERED: GRPCInstanceStatus.InstanceState.instanceCreating,
         }
         return status_map.get(
-            verda_status, externalgrpc_pb2.InstanceStatus.InstanceState.unspecified
+            verda_status, GRPCInstanceStatus.InstanceState.unspecified
         )
 
     @override
     def GPULabel(
-        self, request: externalgrpc_pb2.GPULabelRequest, context: grpc.ServicerContext
-    ) -> externalgrpc_pb2.GPULabelResponse:
-        return externalgrpc_pb2.GPULabelResponse(label="verda.com/gpu")
+        self, request: GPULabelRequest, context: ServicerContext
+    ) -> GPULabelResponse:
+        return GPULabelResponse(label="verda.com/gpu")
 
     @override
     def Refresh(
-        self, request: externalgrpc_pb2.RefreshRequest, context: grpc.ServicerContext
-    ) -> externalgrpc_pb2.RefreshResponse:
+        self, request: RefreshRequest, context: ServicerContext
+    ) -> RefreshResponse:
         """Refresh is called before every main loop - sync with cloud state."""
         try:
             # Fetch current instances from Verda API
@@ -457,33 +492,88 @@ class VerdaCloudProvider(externalgrpc_pb2_grpc.CloudProviderServicer):
         except Exception as e:
             logger.error(f"Refresh failed: {e}")
 
-        return externalgrpc_pb2.RefreshResponse()
+        return RefreshResponse()
 
     @override
     def Cleanup(
-        self, request: externalgrpc_pb2.CleanupRequest, context: grpc.ServicerContext
-    ) -> externalgrpc_pb2.CleanupResponse:
+        self, request: CleanupRequest, context: ServicerContext
+    ) -> CleanupResponse:
         """Clean up resources on shutdown."""
 
-        return externalgrpc_pb2.CleanupResponse()
+        return CleanupResponse()
 
     @override
     def PricingNodePrice(
         self,
-        request: externalgrpc_pb2.PricingNodePriceRequest,
-        context: grpc.ServicerContext,
+        request: PricingNodePriceRequest,
+        context: ServicerContext,
     ):
         rec = self.state_store.get_by_provider_id(request.node.providerID)
         if not rec:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details("Unknown node/providerID")
-            return externalgrpc_pb2.PricingNodePriceResponse()
+            return PricingNodePriceResponse()
 
         cfg = self.node_groups_config[rec.node_group]
         if not getattr(cfg, "hourly_price", None):
             context.set_code(grpc.StatusCode.UNIMPLEMENTED)
             context.set_details("No price configured")
-            return externalgrpc_pb2.PricingNodePriceResponse()
+            return PricingNodePriceResponse()
 
         hours = self._duration_hours(request.startTimestamp, request.endTimestamp)
-        return externalgrpc_pb2.PricingNodePriceResponse(price=cfg.hourly_price * hours)
+        return PricingNodePriceResponse(price=cfg.hourly_price * hours)
+
+    @override
+    def NodeGroupTemplateNodeInfo(
+        self, request: NodeGroupTemplateNodeInfoRequest, context: ServicerContext
+    ):
+        group_id = request.id
+
+        # 1. Get config for this group
+        if group_id not in self.node_groups_config:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            return NodeGroupTemplateNodeInfoResponse()
+
+        config = self.node_groups_config[group_id]
+
+        # 2. Build the Node object using YOUR generated protobuf classes
+        # Note: Resource quantities in proto are strings or specific messages,
+        # but k8s often expects the Quantity wrapper if complex.
+        # For simple CPU/Mem, strings usually work if the proto definition allows it,
+        # otherwise you need the resource_pb2.Quantity.
+
+        node = core_v1.Node(
+            metadata=meta_v1.ObjectMeta(
+                name=f"{group_id}-template",
+                # labels={
+                #    "node.kubernetes.io/instance-type": config.instance_type,
+                #    "topology.kubernetes.io/zone": config.location,
+                # }
+            ),
+            status=core_v1.NodeStatus(
+                capacity={
+                    "cpu": resource_pb2.Quantity(string="4000m"),
+                    "memory": resource_pb2.Quantity(string="16Gi"),
+                    "pods": resource_pb2.Quantity(string="110"),
+                },
+                allocatable={
+                    "cpu": resource_pb2.Quantity(string="4000m"),
+                    "memory": resource_pb2.Quantity(string="15Gi"),
+                    "pods": resource_pb2.Quantity(string="110"),
+                },
+            ),
+        )
+
+        # 3. Serialize to bytes
+        node_bytes = node.SerializeToString()
+
+        # 4. Return wrapped in the response
+        return NodeGroupTemplateNodeInfoResponse(nodeBytes=node_bytes)
+
+    @override
+    def NodeGroupGetOptions(
+        self, request: NodeGroupAutoscalingOptionsRequest, context: ServicerContext
+    ):
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("NodeGroupTemplateNodeInfo not implemented")
+        return NodeGroupAutoscalingOptionsResponse()

@@ -15,6 +15,13 @@ _ALLOWED_CONTRACTS = set(get_args(Contract))
 _ALLOWED_PRICING = set(get_args(Pricing))
 
 
+class ResourcesConfig(BaseModel):
+    cpu: int = Field(gt=0)
+    memory_gb: int = Field(gt=0)
+    gpu_count: int = Field(ge=0, default=0)
+    gpu_model: str | None = None
+
+
 class NodeGroupConfig(BaseModel):
     instance_type: str
     image: str
@@ -26,6 +33,7 @@ class NodeGroupConfig(BaseModel):
     contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "PAY_AS_YOU_GO"
     pricing: str = "FIXED_PRICE"
     hourly_price: float
+    resources: ResourcesConfig
     labels: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("max_size")
