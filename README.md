@@ -1,7 +1,7 @@
 
 # Verda Cloud Provider for Kubernetes Cluster Autoscaler
 
-A gRPC-based cloud provider implementation that enables Kubernetes Cluster Autoscaler to manage GPU nodes on [Verda Cloud](https://verda.ai) (formerly DataCrunch). This allows Kubernetes clusters to dynamically scale GPU workloads to the cloud when local capacity is insufficient, and scale down during periods of inactivity to minimize costs.
+A gRPC-based cloud provider implementation that enables Kubernetes Cluster Autoscaler to manage GPU nodes on [Verda Cloud](https://verda.com) (formerly DataCrunch). This allows Kubernetes clusters to dynamically scale GPU workloads to the cloud when local capacity is insufficient, and scale down during periods of inactivity to minimize costs.
 
 ## Overview
 
@@ -11,44 +11,13 @@ This project implements the [Kubernetes Cluster Autoscaler external gRPC cloud p
 - Dynamic scaling of GPU nodes based on workload demand
 - Automatic scale-down after configurable inactivity periods
 - Support for multiple node groups with different instance types
-- Cost-effective hybrid cloud bursting (local + cloud GPU resources)
 
-
-## Project Structure
-
-```
-.
-├── src/verda_cloud_provider/      # Main application source
-│   ├── __init__.py
-│   ├── main.py                    # gRPC server entrypoint
-│   ├── provider.py                # CloudProvider service implementation
-│   ├── settings.py                # Configuration models
-│   ├── gen/                       # Generated gRPC code
-│   │   └── externalgrpc/
-│   │       ├── externalgrpc_pb2.py
-│   │       └── externalgrpc_pb2_grpc.py
-│   └── utils/
-│       ├── logging.py
-│       └── parse_args.py
-├── proto/                         # Protocol buffer definitions
-│   └── externalgrpc.proto
-├── scripts/                       # Code generation scripts
-│   └── generate_proto.sh
-├── manifests/                     # Kubernetes deployment manifests
-│   ├── provider/                  # Verda provider deployment
-│   ├── autoscaler/                # Cluster autoscaler deployment
-│   └── examples/                  # Example workloads for testing
-├── config.yaml                    # Node group configuration
-├── pyproject.toml                 # Python project configuration
-├── Dockerfile                     # Container image definition
-└── README.md
-```
 
 ## Prerequisites
 
 - Python 3.11+
 - Verda Cloud account with API credentials
-- Kubernetes cluster (v1.24+)
+- Kubernetes cluster (v1.35)
 - Docker (for containerization)
 
 ## Quick Start
@@ -58,7 +27,7 @@ This project implements the [Kubernetes Cluster Autoscaler external gRPC cloud p
 ```bash
 # Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
 
 # Install package
 pip install -e .
@@ -69,25 +38,29 @@ pip install -e .
 Create `config.yaml` with your node group definitions:
 
 ```yaml
-node_groups:
-  gpu-workers:
-    instance_type: "1V100.6V"              # Verda instance type
-    image: "ubuntu-24.04-cuda-12.8-open-docker"
-    min_size: 0                            # Minimum nodes (0 for cost savings)
-    max_size: 10                           # Maximum nodes
-    location: "FIN-03"                     # Verda datacenter location
+  CPU.4V.16G-FIN-03:
+    instance_type: "CPU.4V.16G"                   # Verda instance type
+    image: "ubuntu-24.04-cuda-12.6-docker"        # image
+    min_size: 0                                   # min size of node group
+    max_size: 10                                  # max size of node group
+    location: "FIN-03"                            # Verda location typically FIN-[01-03]
     ssh_key_ids:
-      - "your-ssh-key-id"
-    startup_script_id: "your-startup-script-id"  # Script to join K8s cluster
-    hourly_price: 0.60
-    contract: "PAY_AS_YOU_GO"
+      - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+    hourly_price: 0.60                            # fallback cost / hour - also dynamically fetched from verda api
+    contract: "SPOT" 
     pricing: "FIXED_PRICE"
-    labels:
-      verda.com/gpu: "v100"
-      node-role.kubernetes.io/gpu: "true"
+    labels:                                       # Own lables
+      verda.com/gpu: "false"
+      k8s.io/role: "cloud-worker"
+    resources:                                    # manually definied version - also fetched from verda api
+      cpu: 4
+      memory_gb: 16
+      gpu_count: 0
 ```
 
 ### 3. Set API Credentials
+
+Api credentials can be set in .env file or as environmnet variables
 
 ```bash
 # Create .env file
@@ -122,6 +95,16 @@ docker run -d \
   -v $(pwd)/config.yaml:/config/config.yaml:ro \
   --env-file=.env \
   verda-cloud-provider:latest
+```
+
+Or use prebuilt Docker image
+```bash
+docker run -d \
+  --name verda-provider \
+  -p 8086:8086 \
+  -v $(pwd)/config.yaml:/config/config.yaml:ro \
+  --env-file=.env \
+  ghcr.io/maxkoskinen/ca-verda:latest
 ```
 
 ## Kubernetes Deployment
@@ -168,21 +151,6 @@ kubectl get nodes -w
 kubectl describe pod <pending-pod-name>
 ```
 
-## Configuration
-
-### Node Group Options
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `instance_type` | string | Verda instance type (e.g., "1V100.6V", "8V100.48V") |
-| `image` | string | OS image with CUDA and Docker pre-installed |
-| `min_size` | int | Minimum nodes (set to 0 for cost optimization) |
-| `max_size` | int | Maximum nodes in group |
-| `location` | string | Verda datacenter (FIN-01, FIN-03, etc.) |
-| `ssh_key_ids` | list | SSH keys for instance access |
-| `startup_script_id` | string | Script to configure and join K8s cluster |
-| `hourly_price` | float | Expected hourly cost per instance |
-| `labels` | dict | Kubernetes labels for node targeting |
 
 ### Autoscaler Parameters
 

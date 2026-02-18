@@ -71,8 +71,7 @@ fi
 
 # Configure kubelet with cloud-provider=external and providerID
 cat <<EOF >/etc/default/kubelet
-KUBELET_EXTRA_ARGS=--cloud-provider=external --provider-id=verda://${INSTANCE_ID}
-${NODE_LABEL_ARG}
+KUBELET_EXTRA_ARGS=--cloud-provider=external --provider-id=verda://${INSTANCE_ID} ${NODE_LABEL_ARG}
 EOF
 
 systemctl daemon-reload
