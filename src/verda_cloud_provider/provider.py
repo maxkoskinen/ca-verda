@@ -535,10 +535,7 @@ class VerdaCloudProvider(CloudProviderServicer):
             "memory": resource_pb2.Quantity(string=f"{int(allocatable_memory_gb * 1024 * 1024 * 1024)}"),
             "pods": resource_pb2.Quantity(string="110"),
         }
-        labels_dict = {
-            "node.kubernetes.io/instance-type": f"{config.instance_type}",
-            "node.kubernetes.io/zone": f"{config.location}",
-        }
+
         labels_dict = {
             "node.kubernetes.io/instance-type": f"{config.instance_type}",
             "node.kubernetes.io/zone": f"{config.location}",
@@ -560,10 +557,17 @@ class VerdaCloudProvider(CloudProviderServicer):
             allocatable=allocatable
         )
 
+        node_spec = core_v1.NodeSpec(
+            providerID=f"verda://template-{group_id}",
+            unschedulable=False,
+        )
+
         node = core_v1.Node(
             metadata=metadata,
-            status=nodeStatus
+            spec=node_spec,
+            status=nodeStatus,
         )
+
 
         # 3. Serialize to bytes
         node_bytes = node.SerializeToString()
