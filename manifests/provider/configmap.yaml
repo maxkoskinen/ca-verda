@@ -5,7 +5,7 @@ metadata:
   namespace: kube-system
 data:
   config.yaml: |
-    wireguard:
+    wireguard: {}
 
     kubernetes:
         endpoint: "x.x.x.x:6443"

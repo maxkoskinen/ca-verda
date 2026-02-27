@@ -115,9 +115,14 @@ class VerdaCloudProvider(CloudProviderServicer):
             logger.error(f"Failed to initialize: {e}")
 
 
-    def _duration_hours(self, start: Timestamp, end: Timestamp) -> float:
-        start_s = start.ToDatetime().timestamp()
-        end_s = end.ToDatetime().timestamp()
+    #def _duration_hours(self, start: Timestamp, end: Timestamp) -> float:
+    #    start_s = start.ToDatetime().timestamp()
+    #    end_s = end.ToDatetime().timestamp()
+    #    return max(0.0, (end_s - start_s) / 3600.0)
+
+    def _duration_hours(self, start: meta_v1.Time, end: meta_v1.Time) -> float:
+        start_s = start.seconds + start.nanos / 1e9
+        end_s = end.seconds + end.nanos / 1e9
         return max(0.0, (end_s - start_s) / 3600.0)
 
     @override
@@ -481,7 +486,7 @@ class VerdaCloudProvider(CloudProviderServicer):
         if hourly_price is None:
             hourly_price = cfg.hourly_price
 
-        hours = self._duration_hours(request.startTimestamp, request.endTimestamp)
+        hours = self._duration_hours(request.startTime, request.endTime)
         return PricingNodePriceResponse(price=cfg.hourly_price * hours)
 
     @override

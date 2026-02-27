@@ -157,7 +157,7 @@ spec:
             - --v=5
             - --cloud-provider=externalgrpc
             - --cloud-config=/config/cloud-config
-            - --max-node-provision-time=5m
+            - --max-node-provision-time=30m
           volumeMounts:
             #- name: grpc-client-tls
             #  mountPath: /etc/externalgrpc-client
