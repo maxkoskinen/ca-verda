@@ -539,6 +539,13 @@ class VerdaCloudProvider(CloudProviderServicer):
             "node.kubernetes.io/instance-type": f"{config.instance_type}",
             "node.kubernetes.io/zone": f"{config.location}",
         }
+        labels_dict = {
+            "node.kubernetes.io/instance-type": f"{config.instance_type}",
+            "node.kubernetes.io/zone": f"{config.location}",
+            "topology.kubernetes.io/zone": config.location,
+            "kubernetes.io/os": "linux",
+            "kubernetes.io/arch": "amd64",
+        }
         for key, val in config.labels.items():
             labels_dict[f"{key}"] = f"{val}"
 
