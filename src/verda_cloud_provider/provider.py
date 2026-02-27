@@ -573,7 +573,7 @@ class VerdaCloudProvider(CloudProviderServicer):
         node_bytes = node.SerializeToString()
 
         # 4. Return wrapped in the response
-        return NodeGroupTemplateNodeInfoResponse(nodeBytes=node_bytes)
+        return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
 
     @override
     def NodeGroupGetOptions(self, request: NodeGroupAutoscalingOptionsRequest, context: ServicerContext) -> NodeGroupAutoscalingOptionsResponse:
