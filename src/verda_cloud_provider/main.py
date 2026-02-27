@@ -26,7 +26,7 @@ load_dotenv()
 def serve(config_path: str, port: int):
 
     cfg = AppConfig.load(config_path)
-
+    logger.info(cfg)
     # Initialize server
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 

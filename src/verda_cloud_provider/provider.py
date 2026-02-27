@@ -55,6 +55,7 @@ from verda_cloud_provider.instance_metadata_service import InstanceMetadataCache
 from verda_cloud_provider.settings import AppConfig
 from verda_cloud_provider.startup_script_service import StartupScriptService
 from verda_cloud_provider.state_store import InstanceRecord, InstanceStateStore
+from verda_cloud_provider.wg_service import WireguardService
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ class VerdaCloudProvider(CloudProviderServicer):
     def __init__(self, app_config: AppConfig):
         client_id = os.environ.get("VERDA_CLIENT_ID", "")
         client_secret = os.environ.get("VERDA_CLIENT_SECRET", "")
+        self.wg_service = None
         if not client_id or not client_secret:
             raise ValueError(
                 "VERDA_CLIENT_ID and VERDA_CLIENT_SECRET env vars must be set"
@@ -82,6 +84,10 @@ class VerdaCloudProvider(CloudProviderServicer):
         except Exception as e:
             logging.critical(f"Failed to load configuration: {e}")
             raise e
+
+        # if wireguard service configure set it up
+        if self.app_config.wireguard:
+            self.wg_service = WireguardService(self.app_config.wireguard)
 
         self.state_store = InstanceStateStore()
         self.startup_script_id: str = ""
@@ -197,18 +203,6 @@ class VerdaCloudProvider(CloudProviderServicer):
             return NodeGroupIncreaseSizeResponse()
 
         config = self.node_groups_config[group_id]
-
-        try:
-            startup_script_id = self.startup_script_service.ensure_startup_script(
-                group_id=group_id,
-                labels=config.labels
-            )
-        except Exception as e:
-            logger.error(f"Failed to prepare startup script: {e}")
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Startup script error: {e}")
-            return NodeGroupIncreaseSizeResponse()
-
         current_target = len(self.state_store.get_by_group(group_id))
         new_target = current_target + delta
 
@@ -227,9 +221,20 @@ class VerdaCloudProvider(CloudProviderServicer):
         created_instances = []
 
         for i in range(delta):
+            wg_peer = None
+            startup_script_id = None
             try:
                 unique_suffix = str(uuid.uuid4())[:8]
                 hostname = f"{group_id}-{unique_suffix}"
+
+                if self.wg_service:
+                    wg_peer = self.wg_service.reserve()
+
+                startup_script_id = self.startup_script_service.ensure_startup_script(
+                    group_id=group_id,
+                    labels=config.labels,
+                    wg=wg_peer
+                )
 
                 logger.info(f"Creating instance {i + 1}/{delta}: {hostname}")
 
@@ -245,6 +250,12 @@ class VerdaCloudProvider(CloudProviderServicer):
                     pricing=config.pricing
                 )
 
+                if self.wg_service and wg_peer:
+                    self.wg_service.commit(
+                        reservation_id=wg_peer.reservation_id,
+                        instance_id=instance.id,
+                    )
+
                 # Track the instance
                 record = InstanceRecord(
                     instance_id=instance.id,
@@ -254,6 +265,7 @@ class VerdaCloudProvider(CloudProviderServicer):
                     created_at=datetime.now(UTC).isoformat(),
                     status="creating",
                 )
+
                 self.state_store.add_instance(record)
                 created_instances.append(instance.id)
 
@@ -263,7 +275,17 @@ class VerdaCloudProvider(CloudProviderServicer):
                 logger.error(
                     f"Failed to create instance {i + 1}/{delta} for {group_id}: {e}"
                 )
+
+                if self.wg_service and wg_peer:
+                    self.wg_service.release(wg_peer.reservation_id)
+                if startup_script_id:
+                    self.startup_script_service.delete_startup_script(startup_script_id)
                 break
+
+            # Script was consumed at boot — clean it up
+            if startup_script_id:
+                self.startup_script_service.delete_startup_script(startup_script_id)
+                startup_script_id = None
 
         # Update target size to reflect actual successful creations
         actual_increase = len(created_instances)
@@ -297,31 +319,25 @@ class VerdaCloudProvider(CloudProviderServicer):
 
         for node in nodes_to_delete:
             try:
-                instance_id = None
-
-                if node.providerID and node.providerID.startswith("verda://"):
-                    instance_id = node.providerID.replace("verda://", "")
-                else:
-                    logger.warning(f"Cannot find instance ID for node {node.name}")
+                if not node.providerID or not node.providerID.startswith("verda://"):
+                    logger.warning("Cannot find instance ID for node %s", node.name)
                     continue
 
-                if not instance_id:
-                    logger.error(f"No instance ID found for node {node.name}")
-                    continue
+                instance_id = node.providerID.removeprefix("verda://")
 
-                # Delete the instance
-                logger.info(f"Deleting instance {instance_id} (node: {node.name})")
+                logger.info("Deleting instance %s (node: %s)", instance_id, node.name)
                 self.client.instances.action(instance_id, Actions.DELETE)
 
-                # Remove from state store
-                self.state_store.remove_instance(instance_id)
+                # Only clean up WG peer and state after successful delete
+                if self.wg_service:
+                    self.wg_service.remove_peer(instance_id)
 
+                self.state_store.remove_instance(instance_id)
                 deleted_count += 1
 
             except Exception as e:
                 logger.error(f"Failed to delete node {node.name}: {e}")
 
-        # Update target size
         if deleted_count > 0:
             new_target = len(self.state_store.get_by_group(group_id))
             logger.info(

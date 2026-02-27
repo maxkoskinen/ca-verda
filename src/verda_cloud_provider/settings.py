@@ -1,4 +1,5 @@
-from typing import get_args
+from dataclasses import field
+from typing import Literal, Union, get_args
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
@@ -14,6 +15,35 @@ _ALLOWED_LOCATIONS = {
 
 _ALLOWED_CONTRACTS = set(get_args(Contract))
 _ALLOWED_PRICING = set(get_args(Pricing))
+
+class LocalWireguardBackendConfig(BaseModel):
+    type: Literal["local"] = "local"
+
+class SSHWireguardBackendConfig(BaseModel):
+    type: Literal["ssh"] = "ssh"
+    host: str
+    user: str
+    private_key_path: str
+    port: int = 22
+
+WireguardBackendConfig = Union[
+    LocalWireguardBackendConfig,
+    SSHWireguardBackendConfig,
+]
+
+
+class WireguardConfig(BaseModel):
+    interface: str = "wg0"
+    tunnel_network: str = "10.200.0.0/24"
+    listen_port: int = 51820
+    server_privkey_path: str = "/etc/wireguard/server.key"
+    bastion_endpoint: str = "10.0.0.1"
+    cidrs: list[str] = field(
+        default_factory=lambda: ["10.200.0.0/24"]
+    )
+    backend: WireguardBackendConfig = Field(
+        default_factory=LocalWireguardBackendConfig
+    )
 
 class KubernetesConfig(BaseModel):
     endpoint: str
@@ -71,6 +101,7 @@ class NodeGroupConfig(BaseModel):
 class AppConfig(BaseModel):
     node_groups: dict[str, NodeGroupConfig]
     kubernetes: KubernetesConfig
+    wireguard: WireguardConfig | None = None
 
     @classmethod
     def load(cls, path: str = "config.yaml") -> "AppConfig":

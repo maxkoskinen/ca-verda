@@ -1,3 +1,4 @@
+wireguard: {}
 kubernetes:
     endpoint: "x.x.x.x:6443"
     token: "abcdef.0123456789abcdef"
@@ -19,6 +20,7 @@ node_groups:
     labels:
       verda.com/gpu: "true"
       k8s.io/role: "cloud-worker"
+      topology.kubernetes.io/zone: "verda"
 
   CPU.4V.16G-FIN-03:
     instance_type: "CPU.4V.16G"
@@ -35,6 +37,7 @@ node_groups:
     labels:
       verda.com/gpu: "false"
       k8s.io/role: "cloud-worker"
+      topology.kubernetes.io/zone: "verda"
     resources:
       cpu: 4
       memory_gb: 16

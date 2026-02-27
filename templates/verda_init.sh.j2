@@ -5,7 +5,6 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 export HOME=/root/
 
-# ---- Fill these in via Verda startup script variables ----
 K8S_ENDPOINT="{{ k8s_endpoint }}"
 K8S_TOKEN="{{ k8s_token }}"
 K8S_CA_HASH="{{ k8s_ca_hash }}"
@@ -13,12 +12,38 @@ K8S_CA_HASH="{{ k8s_ca_hash }}"
 # Injected Labels
 LABELS="{{ labels }}"
 
+WG_PRIVATE_KEY="{{ wg_private_key }}"
+WG_PUBKEY="{{ wg_public_key }}"
+WG_IP="{{ wg_ip }}"
+PEER_PUBKEY="{{ peer_pubkey }}"
+WG_ENDPOINT="{{ peer_endpoint }}"
+
 # Get instance ID from Verda metadata service
 INSTANCE_ID="$(cat /var/lib/cloud/data/instance-id 2>/dev/null || true)"
-# -------------------------------------------
 
+# update system
 apt-get update
 apt-get upgrade -y
+
+# setup wireguard
+apt-get install -y wireguard-tools
+
+install -m 0600 /dev/null /etc/wireguard/wg0.conf
+cat > /etc/wireguard/wg0.conf <<EOF
+[Interface]
+Address = ${WG_IP}/24
+PrivateKey = ${WG_PRIVATE_KEY}
+
+[Peer]
+PublicKey = ${PEER_PUBKEY}
+Endpoint = ${WG_ENDPOINT}
+AllowedIPs = 10.200.0.0/24  # bastion lan + on-prem pod/svc CIDRs
+PersistentKeepalive = 25
+EOF
+
+systemctl enable --now wg-quick@wg0
+
+
 apt-get install -y ca-certificates curl gpg apt-transport-https
 
 # Kernel modules + sysctl needed for Kubernetes networking
@@ -71,7 +96,10 @@ fi
 
 # Configure kubelet with cloud-provider=external and providerID
 cat <<EOF >/etc/default/kubelet
-KUBELET_EXTRA_ARGS=--cloud-provider=external --provider-id=verda://${INSTANCE_ID} ${NODE_LABEL_ARG}
+KUBELET_EXTRA_ARGS=--cloud-provider=external \
+    --provider-id=verda://${INSTANCE_ID} \
+    --node-ip=${WG_IP} \
+    ${NODE_LABEL_ARG}
 EOF
 
 systemctl daemon-reload
