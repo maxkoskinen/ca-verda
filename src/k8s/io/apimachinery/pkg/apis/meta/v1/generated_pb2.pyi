@@ -103,36 +103,24 @@ class CreateOptions(_message.Message):
     def __init__(self, dryRun: _Optional[_Iterable[str]] = ..., fieldManager: _Optional[str] = ..., fieldValidation: _Optional[str] = ...) -> None: ...
 
 class DeleteOptions(_message.Message):
-    __slots__ = ("gracePeriodSeconds", "preconditions", "orphanDependents", "propagationPolicy", "dryRun", "ignoreStoreReadErrorWithClusterBreakingPotential")
+    __slots__ = ("gracePeriodSeconds", "preconditions", "orphanDependents", "propagationPolicy", "dryRun")
     GRACEPERIODSECONDS_FIELD_NUMBER: _ClassVar[int]
     PRECONDITIONS_FIELD_NUMBER: _ClassVar[int]
     ORPHANDEPENDENTS_FIELD_NUMBER: _ClassVar[int]
     PROPAGATIONPOLICY_FIELD_NUMBER: _ClassVar[int]
     DRYRUN_FIELD_NUMBER: _ClassVar[int]
-    IGNORESTOREREADERRORWITHCLUSTERBREAKINGPOTENTIAL_FIELD_NUMBER: _ClassVar[int]
     gracePeriodSeconds: int
     preconditions: Preconditions
     orphanDependents: bool
     propagationPolicy: str
     dryRun: _containers.RepeatedScalarFieldContainer[str]
-    ignoreStoreReadErrorWithClusterBreakingPotential: bool
-    def __init__(self, gracePeriodSeconds: _Optional[int] = ..., preconditions: _Optional[_Union[Preconditions, _Mapping]] = ..., orphanDependents: bool = ..., propagationPolicy: _Optional[str] = ..., dryRun: _Optional[_Iterable[str]] = ..., ignoreStoreReadErrorWithClusterBreakingPotential: bool = ...) -> None: ...
+    def __init__(self, gracePeriodSeconds: _Optional[int] = ..., preconditions: _Optional[_Union[Preconditions, _Mapping]] = ..., orphanDependents: bool = ..., propagationPolicy: _Optional[str] = ..., dryRun: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class Duration(_message.Message):
     __slots__ = ("duration",)
     DURATION_FIELD_NUMBER: _ClassVar[int]
     duration: int
     def __init__(self, duration: _Optional[int] = ...) -> None: ...
-
-class FieldSelectorRequirement(_message.Message):
-    __slots__ = ("key", "operator", "values")
-    KEY_FIELD_NUMBER: _ClassVar[int]
-    OPERATOR_FIELD_NUMBER: _ClassVar[int]
-    VALUES_FIELD_NUMBER: _ClassVar[int]
-    key: str
-    operator: str
-    values: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, key: _Optional[str] = ..., operator: _Optional[str] = ..., values: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class FieldsV1(_message.Message):
     __slots__ = ("Raw",)

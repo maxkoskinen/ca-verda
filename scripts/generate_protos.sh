@@ -2,6 +2,15 @@
 set -e
 
 # --- Configuration ---
+
+# --- Version Configuration ---
+K8S_VERSION="1.30.0"
+# Autoscaler uses same minor version as k8s
+CA_VERSION="1.30.0"
+
+# Derived tags (do not edit)
+K8S_TAG="kubernetes-${K8S_VERSION}"
+CA_TAG="cluster-autoscaler-${CA_VERSION}"
 # couldnt get import paths to work for src/generated
 # but with this we get src/clusterautoscaler & src/k8s andits enough for now
 DEST_DIR="src"
@@ -15,6 +24,28 @@ SUB_AUTOSCALER="third_party/kubernetes/autoscaler"
 # Autoscaler Proto Source
 AUTOSCALER_PROTO_SRC="$SUB_AUTOSCALER/cluster-autoscaler/cloudprovider/externalgrpc/protos/externalgrpc.proto"
 AUTOSCALER_PKG_PATH="clusterautoscaler/cloudprovider/v1/externalgrpc"
+
+# 1. Checkout correct submodule versions
+echo "📌 Pinning submodules..."
+git -C "$SUB_API"       fetch --tags --quiet
+git -C "$SUB_MACHINERY" fetch --tags --quiet
+git -C "$SUB_AUTOSCALER" fetch --tags --quiet
+
+git -C "$SUB_API"        checkout "$K8S_TAG"
+git -C "$SUB_MACHINERY"  checkout "$K8S_TAG"
+git -C "$SUB_AUTOSCALER" checkout "$CA_TAG"
+
+# 2. Verify go.mod agrees
+GOMOD_API_VERSION=$(grep "k8s.io/api\b" "$SUB_AUTOSCALER/cluster-autoscaler/go.mod" | awk '{print $2}' | head -1)
+EXPECTED_GOMOD_VERSION="v0.${K8S_VERSION#1.}"   # 1.30.0 → v0.30.0
+EXPECTED_GOMOD_VERSION="${EXPECTED_GOMOD_VERSION%.*}.${K8S_VERSION##*.}"  # ensure patch
+
+if [ "$GOMOD_API_VERSION" != "$EXPECTED_GOMOD_VERSION" ]; then
+  echo "⚠️  Warning: autoscaler go.mod has k8s.io/api=${GOMOD_API_VERSION}, expected ${EXPECTED_GOMOD_VERSION}"
+  echo "   The CA tag and K8S_VERSION may be mismatched. Continuing anyway..."
+else
+  echo "✅ Version check passed: k8s.io/api=${GOMOD_API_VERSION}"
+fi
 
 echo "🚀 Starting Proto Generation..."
 

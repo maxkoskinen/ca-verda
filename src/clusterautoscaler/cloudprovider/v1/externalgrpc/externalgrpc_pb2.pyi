@@ -1,9 +1,7 @@
-import datetime
-
-from google.protobuf import any_pb2 as _any_pb2
 from google.protobuf import descriptor_pb2 as _descriptor_pb2
-from google.protobuf import timestamp_pb2 as _timestamp_pb2
-from google.protobuf import duration_pb2 as _duration_pb2
+from google.protobuf import any_pb2 as _any_pb2
+from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as _generated_pb2
+from k8s.io.api.core.v1 import generated_pb2 as _generated_pb2_1
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -74,14 +72,14 @@ class NodeGroupForNodeResponse(_message.Message):
     def __init__(self, nodeGroup: _Optional[_Union[NodeGroup, _Mapping]] = ...) -> None: ...
 
 class PricingNodePriceRequest(_message.Message):
-    __slots__ = ("node", "startTimestamp", "endTimestamp")
+    __slots__ = ("node", "startTime", "endTime")
     NODE_FIELD_NUMBER: _ClassVar[int]
-    STARTTIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    ENDTIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    STARTTIME_FIELD_NUMBER: _ClassVar[int]
+    ENDTIME_FIELD_NUMBER: _ClassVar[int]
     node: ExternalGrpcNode
-    startTimestamp: _timestamp_pb2.Timestamp
-    endTimestamp: _timestamp_pb2.Timestamp
-    def __init__(self, node: _Optional[_Union[ExternalGrpcNode, _Mapping]] = ..., startTimestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., endTimestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    startTime: _generated_pb2.Time
+    endTime: _generated_pb2.Time
+    def __init__(self, node: _Optional[_Union[ExternalGrpcNode, _Mapping]] = ..., startTime: _Optional[_Union[_generated_pb2.Time, _Mapping]] = ..., endTime: _Optional[_Union[_generated_pb2.Time, _Mapping]] = ...) -> None: ...
 
 class PricingNodePriceResponse(_message.Message):
     __slots__ = ("price",)
@@ -90,14 +88,14 @@ class PricingNodePriceResponse(_message.Message):
     def __init__(self, price: _Optional[float] = ...) -> None: ...
 
 class PricingPodPriceRequest(_message.Message):
-    __slots__ = ("pod_bytes", "startTimestamp", "endTimestamp")
-    POD_BYTES_FIELD_NUMBER: _ClassVar[int]
-    STARTTIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    ENDTIMESTAMP_FIELD_NUMBER: _ClassVar[int]
-    pod_bytes: bytes
-    startTimestamp: _timestamp_pb2.Timestamp
-    endTimestamp: _timestamp_pb2.Timestamp
-    def __init__(self, pod_bytes: _Optional[bytes] = ..., startTimestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., endTimestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    __slots__ = ("pod", "startTime", "endTime")
+    POD_FIELD_NUMBER: _ClassVar[int]
+    STARTTIME_FIELD_NUMBER: _ClassVar[int]
+    ENDTIME_FIELD_NUMBER: _ClassVar[int]
+    pod: _generated_pb2_1.Pod
+    startTime: _generated_pb2.Time
+    endTime: _generated_pb2.Time
+    def __init__(self, pod: _Optional[_Union[_generated_pb2_1.Pod, _Mapping]] = ..., startTime: _Optional[_Union[_generated_pb2.Time, _Mapping]] = ..., endTime: _Optional[_Union[_generated_pb2.Time, _Mapping]] = ...) -> None: ...
 
 class PricingPodPriceResponse(_message.Message):
     __slots__ = ("price",)
@@ -251,28 +249,24 @@ class NodeGroupTemplateNodeInfoRequest(_message.Message):
     def __init__(self, id: _Optional[str] = ...) -> None: ...
 
 class NodeGroupTemplateNodeInfoResponse(_message.Message):
-    __slots__ = ("nodeBytes",)
-    NODEBYTES_FIELD_NUMBER: _ClassVar[int]
-    nodeBytes: bytes
-    def __init__(self, nodeBytes: _Optional[bytes] = ...) -> None: ...
+    __slots__ = ("nodeInfo",)
+    NODEINFO_FIELD_NUMBER: _ClassVar[int]
+    nodeInfo: _generated_pb2_1.Node
+    def __init__(self, nodeInfo: _Optional[_Union[_generated_pb2_1.Node, _Mapping]] = ...) -> None: ...
 
 class NodeGroupAutoscalingOptions(_message.Message):
-    __slots__ = ("scaleDownUtilizationThreshold", "scaleDownGpuUtilizationThreshold", "zeroOrMaxNodeScaling", "ignoreDaemonSetsUtilization", "scaleDownUnneededDuration", "scaleDownUnreadyDuration", "MaxNodeProvisionDuration")
+    __slots__ = ("scaleDownUtilizationThreshold", "scaleDownGpuUtilizationThreshold", "scaleDownUnneededTime", "scaleDownUnreadyTime", "MaxNodeProvisionTime")
     SCALEDOWNUTILIZATIONTHRESHOLD_FIELD_NUMBER: _ClassVar[int]
     SCALEDOWNGPUUTILIZATIONTHRESHOLD_FIELD_NUMBER: _ClassVar[int]
-    ZEROORMAXNODESCALING_FIELD_NUMBER: _ClassVar[int]
-    IGNOREDAEMONSETSUTILIZATION_FIELD_NUMBER: _ClassVar[int]
-    SCALEDOWNUNNEEDEDDURATION_FIELD_NUMBER: _ClassVar[int]
-    SCALEDOWNUNREADYDURATION_FIELD_NUMBER: _ClassVar[int]
-    MAXNODEPROVISIONDURATION_FIELD_NUMBER: _ClassVar[int]
+    SCALEDOWNUNNEEDEDTIME_FIELD_NUMBER: _ClassVar[int]
+    SCALEDOWNUNREADYTIME_FIELD_NUMBER: _ClassVar[int]
+    MAXNODEPROVISIONTIME_FIELD_NUMBER: _ClassVar[int]
     scaleDownUtilizationThreshold: float
     scaleDownGpuUtilizationThreshold: float
-    zeroOrMaxNodeScaling: bool
-    ignoreDaemonSetsUtilization: bool
-    scaleDownUnneededDuration: _duration_pb2.Duration
-    scaleDownUnreadyDuration: _duration_pb2.Duration
-    MaxNodeProvisionDuration: _duration_pb2.Duration
-    def __init__(self, scaleDownUtilizationThreshold: _Optional[float] = ..., scaleDownGpuUtilizationThreshold: _Optional[float] = ..., zeroOrMaxNodeScaling: bool = ..., ignoreDaemonSetsUtilization: bool = ..., scaleDownUnneededDuration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., scaleDownUnreadyDuration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ..., MaxNodeProvisionDuration: _Optional[_Union[datetime.timedelta, _duration_pb2.Duration, _Mapping]] = ...) -> None: ...
+    scaleDownUnneededTime: _generated_pb2.Duration
+    scaleDownUnreadyTime: _generated_pb2.Duration
+    MaxNodeProvisionTime: _generated_pb2.Duration
+    def __init__(self, scaleDownUtilizationThreshold: _Optional[float] = ..., scaleDownGpuUtilizationThreshold: _Optional[float] = ..., scaleDownUnneededTime: _Optional[_Union[_generated_pb2.Duration, _Mapping]] = ..., scaleDownUnreadyTime: _Optional[_Union[_generated_pb2.Duration, _Mapping]] = ..., MaxNodeProvisionTime: _Optional[_Union[_generated_pb2.Duration, _Mapping]] = ...) -> None: ...
 
 class NodeGroupAutoscalingOptionsRequest(_message.Message):
     __slots__ = ("id", "defaults")
