@@ -36,6 +36,7 @@ class WireguardConfig(BaseModel):
     interface: str = "wg0"
     tunnel_network: str = "10.200.0.0/24"
     listen_port: int = 51820
+    server_pub_key: str | None = None
     server_privkey_path: str = "/etc/wireguard/server.key"
     bastion_endpoint: str = "10.0.0.1"
     cidrs: list[str] = field(

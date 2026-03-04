@@ -22,6 +22,9 @@ spec:
       containers:
       - name: provider
         image: ghcr.io/maxkoskinen/ca-verda:latest
+        securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
         imagePullPolicy: Always
         ports:
         - containerPort: 8086

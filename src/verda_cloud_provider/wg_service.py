@@ -143,7 +143,7 @@ class WireguardService:
         self.config = config
         net = ipaddress.IPv4Network(config.tunnel_network, strict=True)
         self._usable: list[str] = [str(h) for h in list(net.hosts())[1:]]  # skip .1
-        self._bastion_pubkey: str | None = None
+        self._bastion_pubkey: str | None = config.server_pub_key
         self._pending: dict[str, _Reservation] = {}
         self.backend = self.build_wireguard_backend(config.backend)
 
