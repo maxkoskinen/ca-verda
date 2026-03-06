@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jupyter-cloud-test
+  namespace: default
+spec:
+  nodeSelector:
+    topology.kubernetes.io/zone: verda
+  containers:
+  - name: jupyter
+    image: jupyter/scipy-notebook:latest
+    ports:
+    - containerPort: 8888
+    resources:
+      requests:
+        cpu: "2000m"
+        memory: "8Gi"
+      limits:
+        cpu: "2000m"
+        memory: "8Gi"
