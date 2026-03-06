@@ -27,21 +27,8 @@ class WireguardPeerConfig:
     public_key: str
     bastion_pubkey: str
     bastion_endpoint: str
+    wg_listen_port: str
     allowed_ips: list[str] = field(default_factory=list)
-
-    def render_wg_config(self) -> str:
-        allowed = ", ".join(self.allowed_ips)
-        return (
-            "[Interface]\n"
-            f"Address = {self.tunnel_ip}/16\n"
-            f"PrivateKey = {self.private_key}\n"
-            "\n"
-            "[Peer]\n"
-            f"PublicKey = {self.bastion_pubkey}\n"
-            f"Endpoint = {self.bastion_endpoint}\n"
-            f"AllowedIPs = {allowed}\n"
-            "PersistentKeepalive = 25\n"
-        )
 
 
 @dataclass
@@ -188,21 +175,24 @@ class WireguardService:
             bastion_pubkey=self._get_bastion_pubkey(),
             bastion_endpoint=self.config.bastion_endpoint,
             allowed_ips=self.config.cidrs + [self.config.tunnel_network],
+            wg_listen_port=str(self.config.listen_port)
         )
 
-    def commit(self, reservation_id: str, instance_id: str) -> None:
-        """
-        Phase 2: register the reserved peer on the live wg interface.
-        Call after the Verda instance has been created.
-        """
+    def commit(self, reservation_id: str, instance_id: str, node_endpoint: str | None = None) -> None:
         reservation = self._pending.pop(reservation_id, None)
         if reservation is None:
             raise KeyError(f"No pending reservation: {reservation_id!r}")
-        self._add_peer(
-            pubkey=reservation.public_key,
-            tunnel_ip=reservation.tunnel_ip,
-            instance_id=instance_id,
-        )
+        try:
+            self._add_peer(
+                pubkey=reservation.public_key,
+                tunnel_ip=reservation.tunnel_ip,
+                instance_id=instance_id,
+                node_endpoint=node_endpoint,
+            )
+        except Exception as e:
+            logger.warning(f"committing failed with error: {e}")
+            self._pending[reservation_id] = reservation
+            return
         logger.info("WireGuard peer committed: instance=%s ip=%s", instance_id, reservation.tunnel_ip)
 
     def release(self, reservation_id: str) -> None:
@@ -306,12 +296,19 @@ class WireguardService:
             self._bastion_pubkey = self.backend.run(["wg", "pubkey"], input=priv).strip()
         return self._bastion_pubkey
 
-    def _add_peer(self, pubkey: str, tunnel_ip: str, instance_id: str) -> None:
-        self.backend.run([
+    def _add_peer(self, pubkey: str, tunnel_ip: str, instance_id: str, node_endpoint: str | None = None) -> None:
+        allowed = f"{tunnel_ip}/32,10.244.0.0/16,10.96.0.0/12,192.168.49.0/24"
+        cmd = [
             "wg", "set", self.config.interface,
             "peer", pubkey,
-            "allowed-ips", f"{tunnel_ip}/32",
-        ])
+            "allowed-ips", allowed,
+        ]
+        if node_endpoint:
+            cmd += ["endpoint", node_endpoint]
+            cmd += ["persistent-keepalive", str(5)]
+
+        self.backend.run(cmd)
+
         self._save()
         self._annotate_conf(pubkey=pubkey, instance_id=instance_id)
 

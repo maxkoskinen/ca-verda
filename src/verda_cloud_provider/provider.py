@@ -1,10 +1,11 @@
 import logging
 import os
 import uuid
-from datetime import UTC, datetime, timedelta
-from typing import override
+from datetime import UTC, datetime
+from typing import Any, override
 
 import grpc
+from google.protobuf.internal.well_known_types import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
 from grpc import ServicerContext
 from verda import VerdaClient
@@ -14,6 +15,8 @@ from verda.constants import InstanceStatus as VerdaInstanceStatus
 from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     CleanupRequest,
     CleanupResponse,
+    GetAvailableGPUTypesRequest,
+    GetAvailableGPUTypesResponse,
     GPULabelRequest,
     GPULabelResponse,
     Instance,
@@ -51,7 +54,9 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc impor
 from k8s.io.api.core.v1 import generated_pb2 as core_v1
 from k8s.io.apimachinery.pkg.api.resource import generated_pb2 as resource_pb2
 from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
+from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
 from verda_cloud_provider.instance_metadata_service import InstanceMetadataCache
+from verda_cloud_provider.NodeTemplateService import NodeTemplateService
 from verda_cloud_provider.settings import AppConfig
 from verda_cloud_provider.startup_script_service import StartupScriptService
 from verda_cloud_provider.state_store import InstanceRecord, InstanceStateStore
@@ -71,7 +76,6 @@ class VerdaCloudProvider(CloudProviderServicer):
             )
 
         self.client: VerdaClient = VerdaClient(client_id, client_secret)
-        self.metadata_cache = InstanceMetadataCache(self.client)
 
         try:
             self.app_config = app_config
@@ -91,6 +95,11 @@ class VerdaCloudProvider(CloudProviderServicer):
 
         self.state_store = InstanceStateStore()
         self.startup_script_id: str = ""
+
+        self.template_service = NodeTemplateService()
+
+        configured_types = {cfg.instance_type for cfg in self.node_groups_config.values()}
+        self.metadata_cache = InstanceMetadataCache(self.client, configured_types)
 
         self.startup_script_service = StartupScriptService(
             client=self.client,
@@ -234,6 +243,7 @@ class VerdaCloudProvider(CloudProviderServicer):
 
                 if self.wg_service:
                     wg_peer = self.wg_service.reserve()
+                    logger.debug(f"reserved wg peer: {wg_peer.tunnel_ip}")
 
                 startup_script_id = self.startup_script_service.ensure_startup_script(
                     group_id=group_id,
@@ -251,14 +261,20 @@ class VerdaCloudProvider(CloudProviderServicer):
                     location=config.location,
                     ssh_key_ids=config.ssh_key_ids,
                     startup_script_id=startup_script_id,
-                    contract=config.contract,
-                    pricing=config.pricing
+                    is_spot=True
+                    #contract=config.contract,
+                    #pricing=config.pricing
                 )
+
+                node_endpoint = None
+                if hasattr(instance, 'ip') and instance.ip and self.app_config.wireguard:
+                    node_endpoint = f"{instance.ip}:{self.app_config.wireguard.listen_port or str(5)}"
 
                 if self.wg_service and wg_peer:
                     self.wg_service.commit(
                         reservation_id=wg_peer.reservation_id,
                         instance_id=instance.id,
+                        node_endpoint=node_endpoint,
                     )
 
                 # Track the instance
@@ -269,12 +285,13 @@ class VerdaCloudProvider(CloudProviderServicer):
                     provider_id=f"verda://{instance.id}",
                     created_at=datetime.now(UTC).isoformat(),
                     status="creating",
+                    node_ip=getattr(instance, "ip", None),
                 )
 
                 self.state_store.add_instance(record)
                 created_instances.append(instance.id)
 
-                logger.info(f"Created instance {instance.id} ({hostname})")
+                logger.info(f"Created instance {instance.id} ({hostname}) {instance.ip}")
 
             except Exception as e:
                 logger.error(
@@ -425,10 +442,22 @@ class VerdaCloudProvider(CloudProviderServicer):
         )
 
     @override
+    def GetAvailableGPUTypes(
+        self, request: GetAvailableGPUTypesRequest, context: ServicerContext
+    ) -> GetAvailableGPUTypesResponse:
+        gpu_types: dict[str, Any] = {}
+        for meta in self.metadata_cache.get_all().values():
+            gpu_type = gpu_type_for_model(meta.gpu_model)
+            if gpu_type and meta.gpu_count > 0:
+                gpu_types[gpu_type] = ""  # empty str is fine maybe
+        return GetAvailableGPUTypesResponse(gpuTypes=gpu_types)
+
+
+    @override
     def GPULabel(
         self, request: GPULabelRequest, context: ServicerContext
     ) -> GPULabelResponse:
-        return GPULabelResponse(label="verda.com/gpu")
+        return GPULabelResponse(label=GPU_LABEL)
 
     @override
     def Refresh(
@@ -563,7 +592,7 @@ class VerdaCloudProvider(CloudProviderServicer):
         )
 
         node_spec = core_v1.NodeSpec(
-            providerID=f"verda://template-{group_id}",
+            providerID=f"verda://{group_id}",  # autoscaler adds some own templating to this
             unschedulable=False,
         )
 
@@ -573,11 +602,8 @@ class VerdaCloudProvider(CloudProviderServicer):
             status=nodeStatus,
         )
 
+        node = self.template_service.build(group_id, config, instance_metadata)
 
-        # 3. Serialize to bytes
-        node_bytes = node.SerializeToString()
-
-        # 4. Return wrapped in the response
         return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
 
     @override

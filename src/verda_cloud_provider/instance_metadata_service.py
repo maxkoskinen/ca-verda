@@ -27,8 +27,9 @@ class InstanceMetadataCache:
     Updated via explicit refresh() calls (no background threads).
     """
 
-    def __init__(self, client: VerdaClient):
+    def __init__(self, client: VerdaClient, configured_types: set[str]):
         self.client = client
+        self._configured_types: set[str] = configured_types
         self._lock = RLock()
         self._cache: Dict[str, InstanceTypeMetadata] = {}
 
@@ -60,14 +61,17 @@ class InstanceMetadataCache:
 
             new_cache = {}
             for instance in instance_types:
-
+                instance_type = instance.instance_type
+                if instance_type not in self._configured_types:
+                    # skip non configured
+                    continue
                 metadata = InstanceTypeMetadata(
                     instance_type=instance.instance_type,
                     cpu_cores=instance.cpu.get("number_of_cores",0),
                     memory_gb=instance.memory.get("size_in_gigabytes",0),
                     gpu_memory_gb=instance.gpu_memory.get("size_in_gigabytes",0),
                     gpu_count=instance.gpu.get("number_of_gpus", 0),
-                    gpu_model=instance.gpu.get("description", None),
+                    gpu_model=instance.gpu.get("model", None) if instance.gpu.get("number_of_gpus", 0) > 0 else None,
                     current_spot_price=instance.spot_price_per_hour,
                     current_ondemand_price=instance.price_per_hour,
                 )

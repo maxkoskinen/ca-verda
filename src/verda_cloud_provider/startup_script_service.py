@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from jinja2 import Template
 from verda import VerdaClient
@@ -31,8 +30,8 @@ class StartupScriptService:
             wg_tunnel_ip=wg.tunnel_ip if wg else None,
             wg_private_key=wg.private_key if wg else None,
             wg_bastion_pubkey=wg.bastion_pubkey if wg else None,
-            wg_bastion_endpoint=wg.bastion_endpoint if wg else None,
             wg_allowed_ips=",".join(wg.allowed_ips) if wg else None,
+            wg_listen_port=wg.wg_listen_port if wg else None
         )
 
     def ensure_startup_script(self, group_id: str, labels: dict[str, str], wg: WireguardPeerConfig | None = None) -> str:
@@ -41,6 +40,7 @@ class StartupScriptService:
         Returns the script ID. Caller should delete it after instance creation.
         """
         script_name = f"k8s-verda-init-{group_id}-{id(wg)}"
+        # Create dynamic kubernetes join tokens hear
         content = self._render_script(labels=labels, wg=wg)
         logger.info("Creating per-node startup script '%s'", script_name)
         script = self.client.startup_scripts.create(name=script_name, script=content)

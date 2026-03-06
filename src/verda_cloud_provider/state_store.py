@@ -14,6 +14,7 @@ class InstanceRecord:
     provider_id: str  # "verda://{instance_id}"
     created_at: str
     status: str
+    node_ip: str | None = None
 
 
 class InstanceStateStore:
@@ -85,6 +86,7 @@ class InstanceStateStore:
                 status = getattr(inst, "status", "") or ""
 
                 existing = self._cache.get(instance_id)
+                node_ip = getattr(inst, "ip_address", None)
                 if existing is None:
                     self._cache[instance_id] = InstanceRecord(
                         instance_id=instance_id,
@@ -93,6 +95,7 @@ class InstanceStateStore:
                         provider_id=f"verda://{instance_id}",
                         created_at=created_at,
                         status=status,
+                         node_ip=node_ip,
                     )
                 else:
                     # Update mutable fields (status/hostname) while preserving created_at
@@ -108,4 +111,5 @@ class InstanceStateStore:
                             provider_id=existing.provider_id,
                             created_at=existing.created_at,
                             status=status,
+                            node_ip=node_ip
                         )

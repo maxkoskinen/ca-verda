@@ -37,11 +37,13 @@ class WireguardConfig(BaseModel):
     tunnel_network: str = "10.200.0.0/24"
     listen_port: int = 51820
     server_pub_key: str | None = None
-    server_privkey_path: str = "/etc/wireguard/server.key"
+    server_privkey_path: str = "/etc/wireguard/wg0.key"
     bastion_endpoint: str = "10.0.0.1"
     cidrs: list[str] = field(
-        default_factory=lambda: ["10.200.0.0/24"]
+        default_factory=lambda: ["10.200.0.0/24",""]
     )
+    keepalive: int = 25          # seconds, bastion -> node
+    node_wg_port: int = 51820
     backend: WireguardBackendConfig = Field(
         default_factory=LocalWireguardBackendConfig
     )
@@ -87,6 +89,7 @@ class NodeGroupConfig(BaseModel):
             raise ValueError(
                 f"Invalid pricing '{v}'. Allowed values: {_ALLOWED_PRICING}"
             )
+        return v
 
     @field_validator("location")
     def check_location(cls, v, values):
@@ -96,7 +99,7 @@ class NodeGroupConfig(BaseModel):
             raise ValueError(
                 f"Invalid location '{v}'. Allowed values: {_ALLOWED_LOCATIONS}"
             )
-        pass
+        return v
 
 
 class AppConfig(BaseModel):
