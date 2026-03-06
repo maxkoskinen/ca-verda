@@ -31,7 +31,7 @@ rules:
     verbs: ["get", "update"]
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["watch", "list", "get", "update"]
+    verbs: ["watch", "list", "get", "update", "delete"]
   - apiGroups: [""]
     resources:
       - "namespaces"
@@ -157,7 +157,10 @@ spec:
             - --v=5
             - --cloud-provider=externalgrpc
             - --cloud-config=/config/cloud-config
-            - --max-node-provision-time=30m
+            - --max-node-provision-time=10m
+            - --scale-down-enabled=true
+            - --scale-down-delay-after-add=10m
+            - --scale-down-unneeded-time=60m # for testing
           volumeMounts:
             #- name: grpc-client-tls
             #  mountPath: /etc/externalgrpc-client

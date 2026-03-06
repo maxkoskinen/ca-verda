@@ -12,20 +12,35 @@ spec:
   selector:
     matchLabels:
       app: verda-cloud-provider
+  strategy:
+      type: Recreate
   template:
     metadata:
       labels:
         app: verda-cloud-provider
         component: cloud-provider
     spec:
+      hostNetwork: true
+      dnsPolicy: Default
       serviceAccountName: verda-cloud-provider
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
       containers:
       - name: provider
-        image: ghcr.io/maxkoskinen/ca-verda:latest
+        image: ca-verda:dev
+        imagePullPolicy: Never
         securityContext:
+          privileged: true
+          runAsUser: 0
           capabilities:
-            add: ["NET_ADMIN"]
-        imagePullPolicy: Always
+            add: ["NET_ADMIN", "SYS_ADMIN"]
         ports:
         - containerPort: 8086
           name: grpc
@@ -50,6 +65,11 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /config
+          readOnly: true
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+        - name: lib-modules
+          mountPath: /lib/modules
           readOnly: true
         #- name: grpc-tls
         #  mountPath: /etc/grpc-tls
@@ -83,6 +103,13 @@ spec:
       - name: config
         configMap:
           name: verda-provider-config
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
       #- name: grpc-tls
       #  secret:
       #    secretName: verda-grpc-server-tls

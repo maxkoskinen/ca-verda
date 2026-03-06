@@ -12,11 +12,15 @@ K8S_CA_HASH="{{ k8s_ca_hash }}"
 # Injected Labels
 LABELS="{{ labels }}"
 
+WG_IP="{{ wg_tunnel_ip }}"
 WG_PRIVATE_KEY="{{ wg_private_key }}"
-WG_PUBKEY="{{ wg_public_key }}"
-WG_IP="{{ wg_ip }}"
-PEER_PUBKEY="{{ peer_pubkey }}"
-WG_ENDPOINT="{{ peer_endpoint }}"
+WG_LISTEN_PORT="{{ wg_listen_port }}"
+PEER_PUBKEY="{{ wg_bastion_pubkey }}"
+ALLOWED_IPS="{{ wg_allowed_ips }}"
+
+# for testing purposes
+echo "10.200.0.1 control-plane.minikube.internal" >> /etc/hosts
+
 
 # Get instance ID from Verda metadata service
 INSTANCE_ID="$(cat /var/lib/cloud/data/instance-id 2>/dev/null || true)"
@@ -32,13 +36,12 @@ install -m 0600 /dev/null /etc/wireguard/wg0.conf
 cat > /etc/wireguard/wg0.conf <<EOF
 [Interface]
 Address = ${WG_IP}/24
+ListenPort = 51820
 PrivateKey = ${WG_PRIVATE_KEY}
 
 [Peer]
 PublicKey = ${PEER_PUBKEY}
-Endpoint = ${WG_ENDPOINT}
-AllowedIPs = 10.200.0.0/24  # bastion lan + on-prem pod/svc CIDRs
-PersistentKeepalive = 25
+AllowedIPs = 10.200.0.0/24,10.244.0.0/16,10.96.0.0/12,192.168.49.0/24  # bastion lan + on-prem pod/svc CIDRs
 EOF
 
 systemctl enable --now wg-quick@wg0
@@ -63,7 +66,7 @@ sysctl --system
 
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  | gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod 0644 /etc/apt/keyrings/docker.gpg
 
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
@@ -71,36 +74,43 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
   | tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 apt-get update
-apt-get install -y containerd.io   # <-- containerd.io not containerd
+apt-get install -y containerd.io
 
 # Generate default config and patch it
 mkdir -p /etc/containerd
 containerd config default > /etc/containerd/config.toml
 
+
 # Enable systemd cgroup driver
 sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 sed -i -E 's/^disabled_plugins *= *\["cri"\]/#&/' /etc/containerd/config.toml
 
-# Docker's containerd.io does NOT have CRI disabled, no sed needed for that
+# enable nivida support
+if command -v nvidia-ctk &>/dev/null; then
+    nvidia-ctk runtime configure --runtime=containerd --set-as-default
+fi
 
 systemctl enable --now containerd
 systemctl restart containerd
 
-# Verify CRI is working before proceeding
-crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock info
-
 # Kubernetes apt repo (v1.30)
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | \
-  gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key \
+  | gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 chmod 0644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" \
   | tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
 
 apt-get update
-apt-get install -y kubelet kubeadm kubectl
-apt-mark hold kubelet kubeadm kubectl
+apt-get install -y kubelet kubeadm kubectl cri-tools
+apt-mark hold kubelet kubeadm kubectl cri-tools
+
+# Flannel will replace this file once the node is Ready
+mkdir -p /etc/cni/net.d
+
+# Verify CRI is working before proceeding
+crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock info
 
 # Prepare Label Args
 NODE_LABEL_ARG=""
@@ -111,14 +121,15 @@ fi
 
 # Configure kubelet with cloud-provider=external and providerID
 cat <<EOF >/etc/default/kubelet
-KUBELET_EXTRA_ARGS=--cloud-provider=external \
-    --provider-id=verda://${INSTANCE_ID} \
+KUBELET_EXTRA_ARGS=--provider-id=verda://${INSTANCE_ID} \
     --node-ip=${WG_IP} \
+    --cgroup-driver=systemd \
     ${NODE_LABEL_ARG}
 EOF
 
 systemctl daemon-reload
 systemctl enable --now kubelet
+
 
 # Join cluster if not already joined
 if [ ! -f /etc/kubernetes/kubelet.conf ]; then
