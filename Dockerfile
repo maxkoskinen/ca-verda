@@ -22,6 +22,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     wireguard-tools \
+    iproute2 \
+    procps \
+    iptables \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /build/dist/*.whl /tmp/
@@ -31,10 +34,11 @@ RUN pip install --no-cache-dir /tmp/*.whl && \
 
 COPY templates/ /app/templates/
 
-RUN useradd -m -u 1000 verda_cloud_provider
-USER verda_cloud_provider
+COPY scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8086
 
-ENTRYPOINT ["verda-cloud-provider"]
+ENTRYPOINT ["/entrypoint.sh"]
+
 CMD ["--config", "/config/config.yaml", "--port", "8086", "--log-level", "INFO"]
