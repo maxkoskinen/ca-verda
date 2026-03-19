@@ -97,6 +97,9 @@ fi
 systemctl enable --now containerd
 systemctl restart containerd
 
+# Flannel will replace this file once the node is Ready
+mkdir -p /etc/cni/net.d
+
 # ---------------------------------------------------------------------------
 # k3s agent
 # ---------------------------------------------------------------------------

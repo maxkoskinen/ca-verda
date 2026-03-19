@@ -3,7 +3,6 @@ from typing import Literal, Union, get_args
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
-from typing_extensions import Literal
 from verda.constants import Locations
 from verda.instances import Contract, Pricing
 
