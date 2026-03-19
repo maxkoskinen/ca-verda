@@ -5,8 +5,6 @@ from datetime import UTC, datetime
 from typing import Any, override
 
 import grpc
-from google.protobuf.internal.well_known_types import Struct
-from google.protobuf.timestamp_pb2 import Timestamp
 from grpc import ServicerContext
 from verda import VerdaClient
 from verda.constants import Actions
@@ -21,7 +19,6 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     GPULabelResponse,
     Instance,
     NodeGroup,
-    NodeGroupAutoscalingOptions,
     NodeGroupAutoscalingOptionsRequest,
     NodeGroupAutoscalingOptionsResponse,
     NodeGroupDecreaseTargetSizeRequest,
