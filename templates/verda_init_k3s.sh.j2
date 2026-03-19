@@ -105,7 +105,10 @@ EXTRA_AGENT_ARGS="--node-ip ${WG_IP} \
 
 # Pass node labels if provided (comma-separated key=value pairs)
 if [ -n "${LABELS}" ]; then
-    EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS} --node-label=${LABELS}"
+    IFS=',' read -ra _LABEL_ARR <<< "${LABELS}"
+    for _label in "${_LABEL_ARR[@]}"; do
+        EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS} --node-label=${_label}"
+    done
 fi
 
 # Use external containerd socket only when NVIDIA runtime was configured;
