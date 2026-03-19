@@ -121,7 +121,7 @@ fi
 if [ ! -f /var/lib/rancher/k3s/agent/kubelet.kubeconfig ]; then
     echo "Joining k3s cluster..."
     curl -sfL https://get.k3s.io \
-      | INSTALL_K3S_CHANNEL="v1.30" \
+      | INSTALL_K3S_VERSION="v1.32.3+k3s1" \
         K3S_URL="https://${K8S_ENDPOINT}" \
         K3S_TOKEN="${K8S_TOKEN}" \
         INSTALL_K3S_EXEC="agent ${EXTRA_AGENT_ARGS}" \
