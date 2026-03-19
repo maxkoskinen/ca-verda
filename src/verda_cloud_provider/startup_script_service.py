@@ -25,11 +25,11 @@ class StartupScriptService:
         return self.template.render(
             k8s_endpoint=self.k8s_config.endpoint,
             k8s_token=self.k8s_config.token,
-            k8s_ca_hash=self.k8s_config.ca_hash,
+            k8s_ca_hash=self.k8s_config.ca_hash if self.k8s_config.ca_hash else "",
             labels=label_str,
             wg_tunnel_ip=wg.tunnel_ip if wg else None,
             wg_private_key=wg.private_key if wg else None,
-            wg_bastion_pubkey=wg.bastion_pubkey if wg else None,
+            wg_peer_pubkey=wg.peer_pubkey if wg else None,
             wg_allowed_ips=",".join(wg.allowed_ips) if wg else None,
             wg_listen_port=wg.wg_listen_port if wg else None
         )

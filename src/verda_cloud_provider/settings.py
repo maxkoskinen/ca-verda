@@ -38,11 +38,10 @@ class WireguardConfig(BaseModel):
     listen_port: int = 51820
     server_pub_key: str | None = None
     server_privkey_path: str = "/etc/wireguard/wg0.key"
-    bastion_endpoint: str = "10.0.0.1"
     cidrs: list[str] = field(
-        default_factory=lambda: ["10.200.0.0/24",""]
+        default_factory=lambda: ["10.200.0.0/24"]
     )
-    keepalive: int = 25          # seconds, bastion -> node
+    keepalive: int = 25
     node_wg_port: int = 51820
     backend: WireguardBackendConfig = Field(
         default_factory=LocalWireguardBackendConfig
@@ -51,7 +50,7 @@ class WireguardConfig(BaseModel):
 class KubernetesConfig(BaseModel):
     endpoint: str
     token: str
-    ca_hash: str
+    ca_hash: str | None = None
 
 class ResourcesConfig(BaseModel):
     cpu: int = Field(gt=0)
@@ -106,6 +105,7 @@ class AppConfig(BaseModel):
     node_groups: dict[str, NodeGroupConfig]
     kubernetes: KubernetesConfig
     wireguard: WireguardConfig | None = None
+    script_template: Literal["k3s"] | None = None
 
     @classmethod
     def load(cls, path: str = "config.yaml") -> "AppConfig":
