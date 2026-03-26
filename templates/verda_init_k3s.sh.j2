@@ -10,6 +10,7 @@ K8S_TOKEN="{{ k8s_token }}"
 
 # Injected Labels
 LABELS="{{ labels }}"
+NODE_TAINTS="{{ taints }}"
 
 WG_IP="{{ wg_tunnel_ip }}"
 WG_PRIVATE_KEY="{{ wg_private_key }}"
@@ -76,10 +77,19 @@ EXTRA_AGENT_ARGS="--node-ip ${WG_IP} \
     --flannel-iface=wg0 \
     --kubelet-arg=provider-id=verda://${INSTANCE_ID}"
 
+# inject labels
 if [ -n "${LABELS}" ]; then
     IFS=',' read -ra _LABEL_ARR <<< "${LABELS}"
     for _label in "${_LABEL_ARR[@]}"; do
         EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS} --node-label=${_label}"
+    done
+fi
+
+# Inject taints
+if [ -n "${NODE_TAINTS}" ]; then
+    IFS=',' read -ra _TAINT_ARR <<< "${NODE_TAINTS}"
+    for _taint in "${_TAINT_ARR[@]}"; do
+        EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS} --node-taint=${_taint}"
     done
 fi
 

@@ -20,13 +20,15 @@ class StartupScriptService:
             logger.error("Failed to load startup script template: %s", e)
             raise
 
-    def _render_script(self, labels: dict[str, str], wg: WireguardPeerConfig | None = None) -> str:
+    def _render_script(self, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
         label_str = ",".join(f"{k}={v}" for k, v in labels.items())
+        taint_str = ",".join(f"{k}={v}" for k, v in taints.items())
         return self.template.render(
             k8s_endpoint=self.k8s_config.endpoint,
             k8s_token=self.k8s_config.token,
             k8s_ca_hash=self.k8s_config.ca_hash if self.k8s_config.ca_hash else "",
             labels=label_str,
+            taints=taint_str,
             wg_tunnel_ip=wg.tunnel_ip if wg else None,
             wg_private_key=wg.private_key if wg else None,
             wg_peer_pubkey=wg.peer_pubkey if wg else None,
@@ -34,14 +36,14 @@ class StartupScriptService:
             wg_listen_port=wg.wg_listen_port if wg else None
         )
 
-    def ensure_startup_script(self, group_id: str, labels: dict[str, str], wg: WireguardPeerConfig | None = None) -> str:
+    def ensure_startup_script(self, group_id: str, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
         """
         Create a per-node startup script with the rendered wg config baked in.
         Returns the script ID. Caller should delete it after instance creation.
         """
         script_name = f"k8s-verda-init-{group_id}-{id(wg)}"
         # Create dynamic kubernetes join tokens hear
-        content = self._render_script(labels=labels, wg=wg)
+        content = self._render_script(labels=labels, taints=taints, wg=wg)
         logger.info("Creating per-node startup script '%s'", script_name)
         script = self.client.startup_scripts.create(name=script_name, script=content)
         return script.id

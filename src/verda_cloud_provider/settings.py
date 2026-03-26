@@ -72,6 +72,7 @@ class NodeGroupConfig(BaseModel):
     hourly_price: float
     resources: ResourcesConfig | None = None
     labels: dict[str, str] = Field(default_factory=dict)
+    taints: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("max_size")
     def check_max_size(cls, v, values):

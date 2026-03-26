@@ -253,6 +253,7 @@ class VerdaCloudProvider(CloudProviderServicer):
                 startup_script_id = self.startup_script_service.ensure_startup_script(
                     group_id=group_id,
                     labels=config.labels,
+                    taints=config.taints,
                     wg=wg_peer
                 )
 
