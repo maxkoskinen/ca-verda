@@ -172,7 +172,7 @@ class WireguardService:
             private_key=privkey,
             public_key=pubkey,
             peer_pubkey=self._get_peer_pubkey(),
-            allowed_ips=self.config.cidrs + [self.config.tunnel_network],
+            allowed_ips=self.config.cloud_allowed_ips + [self.config.tunnel_network],
             wg_listen_port=str(self.config.listen_port)
         )
 

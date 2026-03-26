@@ -37,7 +37,7 @@ class WireguardConfig(BaseModel):
     listen_port: int = 51820
     server_pub_key: str | None = None
     server_privkey_path: str = "/etc/wireguard/wg0.key"
-    cidrs: list[str] = field(
+    cloud_allowed_ips: list[str] = field(
         default_factory=lambda: ["10.200.0.0/24"]
     )
     keepalive: int = 25
@@ -48,8 +48,6 @@ class WireguardConfig(BaseModel):
 
 class KubernetesConfig(BaseModel):
     endpoint: str
-    token: str
-    ca_hash: str | None = None
 
 class ResourcesConfig(BaseModel):
     cpu: int = Field(gt=0)

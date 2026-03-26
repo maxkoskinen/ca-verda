@@ -6,11 +6,12 @@ WG_IFACE=wg0
 
 # Configurable via env — set defaults
 : "${WG_ADDRESS:=10.200.0.1/16}"
+: "${WG_EGRESS_IFACE:=eth0}"
 : "${WG_LISTEN_PORT:=51820}"
 : "${WG_NETWORK:=10.200.0.0/16}"
 : "${POD_CIDR:=10.42.0.0/16}"
 : "${SVC_CIDR:=10.43.0.0/16}"
-: "${WG_EGRESS_IFACE:=eth0}"
+
 
 mkdir -p $WG_DIR
 

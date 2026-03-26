@@ -1,4 +1,5 @@
 import logging
+import os
 
 from jinja2 import Template
 from verda import VerdaClient
@@ -13,6 +14,12 @@ class StartupScriptService:
     def __init__(self, client: VerdaClient, template_path: str, k8s_config: KubernetesConfig):
         self.client = client
         self.k8s_config = k8s_config
+        self.k8s_token = os.environ.get("K8S_JOIN_TOKEN", None)
+        self.k8s_ca_hash = os.environ.get("K8S_CA_HASH", None)
+
+        if not self.k8s_token:
+            logger.error("No join token provided, cloud nodes wont be able to join cluster")
+
         try:
             with open(template_path, 'r') as f:
                 self.template = Template(f.read())
@@ -25,8 +32,8 @@ class StartupScriptService:
         taint_str = ",".join(f"{k}={v}" for k, v in taints.items())
         return self.template.render(
             k8s_endpoint=self.k8s_config.endpoint,
-            k8s_token=self.k8s_config.token,
-            k8s_ca_hash=self.k8s_config.ca_hash if self.k8s_config.ca_hash else "",
+            k8s_token=self.k8s_token,
+            k8s_ca_hash=self.k8s_ca_hash if self.k8s_ca_hash else "",
             labels=label_str,
             taints=taint_str,
             wg_tunnel_ip=wg.tunnel_ip if wg else None,

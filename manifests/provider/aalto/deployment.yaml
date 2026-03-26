@@ -34,7 +34,7 @@ spec:
           effect: NoSchedule
       containers:
       - name: provider
-        image: ghcr.io/maxkoskinen/ca-verda:v0.0.4-dev-k3s
+        image: ghcr.io/maxkoskinen/ca-verda:v0.0.6-dev-k3s
         imagePullPolicy: Always
         securityContext:
           privileged: true
@@ -49,24 +49,43 @@ spec:
         - name: VERDA_CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: verda-credentials
+              name: verda-secrets
               key: client-id
         - name: VERDA_CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: verda-credentials
+              name: verda-secrets
               key: client-secret
+        - name: K8S_JOIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: verda-secrets
+              key: k8s-token
         - name: WG_ADDRESS
-          value: "10.200.0.1/16"
+          valueFrom:
+            configMapKeyRef:
+              name: verda-provider-config
+              key: WG_ADDRESS
         - name: WG_LISTEN_PORT
-          value: "51820"
-        - name: POD_CIDR
-          value: "10.42.0.0/16"
-        - name: SVC_CIDR
-          value: "10.43.0.0/16"
+          valueFrom:
+            configMapKeyRef:
+              name: verda-provider-config
+              key: WG_LISTEN_PORT
         - name: WG_EGRESS_IFACE
-          value: "enX0"
-
+          valueFrom:
+            configMapKeyRef:
+              name: verda-provider-config
+              key: WG_EGRESS_IFACE
+        - name: POD_CIDR
+          valueFrom:
+            configMapKeyRef:
+              name: verda-provider-config
+              key: POD_CIDR
+        - name: SVC_CIDR
+          valueFrom:
+            configMapKeyRef:
+              name: verda-provider-config
+              key: SVC_CIDR
         #- name: TLS_CERT_FILE
         #  value: /etc/grpc-tls/tls.crt
         #- name: TLS_KEY_FILE
