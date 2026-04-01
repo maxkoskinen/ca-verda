@@ -68,6 +68,26 @@ EOF
 
 sysctl --system
 
+
+# NVIDIA stuff
+apt-get install -y --no-install-recommends gnupg2
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+apt-get update
+
+export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.19.0-1
+  sudo apt-get install -y \
+      nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+
+apt install -y nvidia-container-runtime cuda-drivers-fabricmanager-515 nvidia-headless-515-server
+
 # ---------------------------------------------------------------------------
 # k3s agent
 # k3s uses its own bundled containerd — no external containerd needed.
