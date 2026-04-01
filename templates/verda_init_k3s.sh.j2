@@ -129,17 +129,17 @@ fi
 # ---------------------------------------------------------------------------
 # NVIDIA — configure k3s's bundled containerd post-install (GPU nodes only)
 # ---------------------------------------------------------------------------
-if command -v nvidia-smi &>/dev/null && nvidia-smi -L 2>/dev/null | grep -q GPU; then
-    echo "GPU detected, configuring nvidia runtime..."
-    until [ -d /var/lib/rancher/k3s/agent/etc/containerd ]; do
-        echo "Waiting for k3s containerd config dir..."
-        sleep 2
-    done
-    nvidia-ctk runtime configure \
-        --runtime=containerd \
-        --config /var/lib/rancher/k3s/agent/etc/containerd/config.toml \
-        --set-as-default
-    systemctl restart k3s-agent
-    systemctl restart containerd
-    echo "NVIDIA runtime configured."
-fi
+#if command -v nvidia-smi &>/dev/null && nvidia-smi -L 2>/dev/null | grep -q GPU; then
+#    echo "GPU detected, configuring nvidia runtime..."
+#    until [ -d /var/lib/rancher/k3s/agent/etc/containerd ]; do
+#        echo "Waiting for k3s containerd config dir..."
+#        sleep 2
+#    done
+#    nvidia-ctk runtime configure \
+#        --runtime=containerd \
+#        --config /var/lib/rancher/k3s/agent/etc/containerd/config.toml \
+#        --set-as-default
+#    systemctl restart k3s-agent
+#    systemctl restart containerd
+#    echo "NVIDIA runtime configured."
+#fi
