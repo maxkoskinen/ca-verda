@@ -157,9 +157,9 @@ spec:
             - --v=5
             - --cloud-provider=externalgrpc
             - --cloud-config=/config/cloud-config
-            - --max-node-provision-time=10m
+            - --max-node-provision-time=60m
             - --scale-down-enabled=true
-            - --scale-down-delay-after-add=10m
+            - --scale-down-delay-after-add=60m
             - --scale-down-unneeded-time=60m # for testing
           volumeMounts:
             #- name: grpc-client-tls

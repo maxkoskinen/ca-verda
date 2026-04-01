@@ -1,0 +1,55 @@
+daemonsets:
+  priorityClassName: system-node-critical
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+    - key: node.kubernetes.io/role
+      operator: Equal
+      value: cloud-worker
+      effect: NoSchedule
+  updateStrategy: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: "1"
+
+node-feature-discovery:
+  priorityClassName: system-node-critical
+  gc:
+    enable: true
+    replicaCount: 1
+    serviceAccount:
+      name: node-feature-discovery
+      create: false
+  worker:
+    serviceAccount:
+      name: node-feature-discovery
+      create: false
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Equal
+        value: ""
+        effect: NoSchedule
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - key: node.kubernetes.io/role
+        operator: Equal
+        value: cloud-worker
+        effect: NoSchedule
+    config:
+      sources:
+        pci:
+          deviceClassWhitelist: ["02", "0200", "0207", "0300", "0302"]
+          deviceLabelFields: ["vendor"]
+  master:
+    serviceAccount:
+      name: node-feature-discovery
+      create: true
+    config:
+      extraLabelNs: ["nvidia.com"]
+
+dcgmExporter:
+  enabled: false
+
+cdi:
+  nriPluginEnabled: true
