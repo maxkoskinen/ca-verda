@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: route-manager
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: route-manager
+  template:
+    metadata:
+      labels:
+        app: route-manager
+    spec:
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.kubernetes.io/role
+                    operator: NotIn
+                    values:
+                      - cloud-worker
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      initContainers:
+        - name: add-route
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              ip route add 10.200.0.0/16 via 10.164.4.101 || true
+          securityContext:
+            privileged: true
+      containers:
+        - name: pause
+          image: busybox:1.36
+          command: ["/bin/sh", "-c", "sleep infinity"]
