@@ -5,6 +5,25 @@ from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
 from verda_cloud_provider.instance_metadata_service import InstanceTypeMetadata
 from verda_cloud_provider.settings import NodeGroupConfig
 
+_VALID_EFFECTS = {"NoSchedule", "PreferNoSchedule", "NoExecute"}
+
+
+def _parse_taints(taints: dict[str, str]) -> list[core_v1.Taint]:
+    result = []
+    for key, raw in taints.items():
+        parts = raw.rsplit(":", 1)
+        if len(parts) == 2 and parts[1] in _VALID_EFFECTS:
+            value, effect = parts
+        else:
+            value, effect = "", raw
+
+        if effect not in _VALID_EFFECTS:
+            raise ValueError(
+                f"Unknown taint effect '{effect}' for key '{key}'. "
+                f"Allowed: {_VALID_EFFECTS}"
+            )
+        result.append(core_v1.Taint(key=key, value=value, effect=effect))
+    return result
 
 class NodeTemplateService:
     def build(
@@ -55,6 +74,7 @@ class NodeTemplateService:
             spec=core_v1.NodeSpec(
                 providerID=f"verda://{group_id}",
                 unschedulable=False,
+                taints=_parse_taints(config.taints),
             ),
             status=core_v1.NodeStatus(
                 capacity=capacity,

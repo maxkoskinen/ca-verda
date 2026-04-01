@@ -173,7 +173,6 @@ Key cluster-autoscaler flags (configured in `manifests/autoscaler/deployment.yam
 ./scripts/generate_proto.sh
 ```
 
-
 ## License
 
 [MIT License](LICENSE)

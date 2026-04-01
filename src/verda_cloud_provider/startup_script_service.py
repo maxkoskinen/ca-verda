@@ -1,4 +1,5 @@
 import logging
+import os
 
 from jinja2 import Template
 from verda import VerdaClient
@@ -13,6 +14,12 @@ class StartupScriptService:
     def __init__(self, client: VerdaClient, template_path: str, k8s_config: KubernetesConfig):
         self.client = client
         self.k8s_config = k8s_config
+        self.k8s_token = os.environ.get("K8S_JOIN_TOKEN", None)
+        self.k8s_ca_hash = os.environ.get("K8S_CA_HASH", None)
+
+        if not self.k8s_token:
+            logger.error("No join token provided, cloud nodes wont be able to join cluster")
+
         try:
             with open(template_path, 'r') as f:
                 self.template = Template(f.read())
@@ -20,28 +27,30 @@ class StartupScriptService:
             logger.error("Failed to load startup script template: %s", e)
             raise
 
-    def _render_script(self, labels: dict[str, str], wg: WireguardPeerConfig | None = None) -> str:
+    def _render_script(self, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
         label_str = ",".join(f"{k}={v}" for k, v in labels.items())
+        taint_str = ",".join(f"{k}={v}" for k, v in taints.items())
         return self.template.render(
             k8s_endpoint=self.k8s_config.endpoint,
-            k8s_token=self.k8s_config.token,
-            k8s_ca_hash=self.k8s_config.ca_hash,
+            k8s_token=self.k8s_token,
+            k8s_ca_hash=self.k8s_ca_hash if self.k8s_ca_hash else "",
             labels=label_str,
+            taints=taint_str,
             wg_tunnel_ip=wg.tunnel_ip if wg else None,
             wg_private_key=wg.private_key if wg else None,
-            wg_bastion_pubkey=wg.bastion_pubkey if wg else None,
+            wg_peer_pubkey=wg.peer_pubkey if wg else None,
             wg_allowed_ips=",".join(wg.allowed_ips) if wg else None,
             wg_listen_port=wg.wg_listen_port if wg else None
         )
 
-    def ensure_startup_script(self, group_id: str, labels: dict[str, str], wg: WireguardPeerConfig | None = None) -> str:
+    def ensure_startup_script(self, group_id: str, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
         """
         Create a per-node startup script with the rendered wg config baked in.
         Returns the script ID. Caller should delete it after instance creation.
         """
         script_name = f"k8s-verda-init-{group_id}-{id(wg)}"
         # Create dynamic kubernetes join tokens hear
-        content = self._render_script(labels=labels, wg=wg)
+        content = self._render_script(labels=labels, taints=taints, wg=wg)
         logger.info("Creating per-node startup script '%s'", script_name)
         script = self.client.startup_scripts.create(name=script_name, script=content)
         return script.id

@@ -25,8 +25,7 @@ class WireguardPeerConfig:
     tunnel_ip: str
     private_key: str
     public_key: str
-    bastion_pubkey: str
-    bastion_endpoint: str
+    peer_pubkey: str
     wg_listen_port: str
     allowed_ips: list[str] = field(default_factory=list)
 
@@ -130,7 +129,7 @@ class WireguardService:
         self.config = config
         net = ipaddress.IPv4Network(config.tunnel_network, strict=True)
         self._usable: list[str] = [str(h) for h in list(net.hosts())[1:]]  # skip .1
-        self._bastion_pubkey: str | None = config.server_pub_key
+        self._peer_pubkey: str | None = config.server_pub_key
         self._pending: dict[str, _Reservation] = {}
         self.backend = self.build_wireguard_backend(config.backend)
 
@@ -172,9 +171,8 @@ class WireguardService:
             tunnel_ip=tunnel_ip,
             private_key=privkey,
             public_key=pubkey,
-            bastion_pubkey=self._get_bastion_pubkey(),
-            bastion_endpoint=self.config.bastion_endpoint,
-            allowed_ips=self.config.cidrs + [self.config.tunnel_network],
+            peer_pubkey=self._get_peer_pubkey(),
+            allowed_ips=self.config.cloud_allowed_ips + [self.config.tunnel_network],
             wg_listen_port=str(self.config.listen_port)
         )
 
@@ -290,11 +288,11 @@ class WireguardService:
         pub  = self.backend.run(["wg", "pubkey"], input=priv).strip()
         return priv, pub
 
-    def _get_bastion_pubkey(self) -> str:
-        if self._bastion_pubkey is None:
+    def _get_peer_pubkey(self) -> str:
+        if self._peer_pubkey is None:
             priv = self.backend.read_file(self.config.server_privkey_path).strip()
-            self._bastion_pubkey = self.backend.run(["wg", "pubkey"], input=priv).strip()
-        return self._bastion_pubkey
+            self._peer_pubkey = self.backend.run(["wg", "pubkey"], input=priv).strip()
+        return self._peer_pubkey
 
     def _add_peer(self, pubkey: str, tunnel_ip: str, instance_id: str, node_endpoint: str | None = None) -> None:
         allowed = f"{tunnel_ip}/32,10.244.0.0/16,10.96.0.0/12,192.168.49.0/24"

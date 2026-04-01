@@ -2,10 +2,15 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: jupyter-cloud-test
-  namespace: default
+  namespace: test
 spec:
   nodeSelector:
     topology.kubernetes.io/zone: verda
+  tolerations:
+    - key: "node-role.kubernetes.io/cloud"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
   containers:
   - name: jupyter
     image: jupyter/scipy-notebook:latest

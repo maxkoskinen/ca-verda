@@ -3,7 +3,6 @@ from typing import Literal, Union, get_args
 
 import yaml
 from pydantic import BaseModel, Field, field_validator
-from typing_extensions import Literal
 from verda.constants import Locations
 from verda.instances import Contract, Pricing
 
@@ -38,11 +37,10 @@ class WireguardConfig(BaseModel):
     listen_port: int = 51820
     server_pub_key: str | None = None
     server_privkey_path: str = "/etc/wireguard/wg0.key"
-    bastion_endpoint: str = "10.0.0.1"
-    cidrs: list[str] = field(
-        default_factory=lambda: ["10.200.0.0/24",""]
+    cloud_allowed_ips: list[str] = field(
+        default_factory=lambda: ["10.200.0.0/24"]
     )
-    keepalive: int = 25          # seconds, bastion -> node
+    keepalive: int = 25
     node_wg_port: int = 51820
     backend: WireguardBackendConfig = Field(
         default_factory=LocalWireguardBackendConfig
@@ -50,8 +48,6 @@ class WireguardConfig(BaseModel):
 
 class KubernetesConfig(BaseModel):
     endpoint: str
-    token: str
-    ca_hash: str
 
 class ResourcesConfig(BaseModel):
     cpu: int = Field(gt=0)
@@ -74,6 +70,7 @@ class NodeGroupConfig(BaseModel):
     hourly_price: float
     resources: ResourcesConfig | None = None
     labels: dict[str, str] = Field(default_factory=dict)
+    taints: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("max_size")
     def check_max_size(cls, v, values):
@@ -106,6 +103,7 @@ class AppConfig(BaseModel):
     node_groups: dict[str, NodeGroupConfig]
     kubernetes: KubernetesConfig
     wireguard: WireguardConfig | None = None
+    script_template: Literal["k3s"] | None = None
 
     @classmethod
     def load(cls, path: str = "config.yaml") -> "AppConfig":

@@ -98,9 +98,17 @@ class VerdaCloudProvider(CloudProviderServicer):
         configured_types = {cfg.instance_type for cfg in self.node_groups_config.values()}
         self.metadata_cache = InstanceMetadataCache(self.client, configured_types)
 
+        startup_script_template_path = "templates/verda_init.sh.j2"
+
+        match self.app_config.script_template:
+            case "k3s":
+                startup_script_template_path = "templates/verda_init_k3s.sh.j2"
+            case _:
+                pass
+
         self.startup_script_service = StartupScriptService(
             client=self.client,
-            template_path="templates/verda_init.sh.j2",
+            template_path=startup_script_template_path,
             k8s_config=self.app_config.kubernetes
         )
         self._initialize()
@@ -245,6 +253,7 @@ class VerdaCloudProvider(CloudProviderServicer):
                 startup_script_id = self.startup_script_service.ensure_startup_script(
                     group_id=group_id,
                     labels=config.labels,
+                    taints=config.taints,
                     wg=wg_peer
                 )
 
