@@ -36,12 +36,12 @@ install -m 0600 /dev/null /etc/wireguard/wg0.conf
 cat > /etc/wireguard/wg0.conf <<EOF
 [Interface]
 Address = ${WG_IP}/24
-ListenPort = 51820
+ListenPort = ${WG_LISTEN_PORT}
 PrivateKey = ${WG_PRIVATE_KEY}
 
 [Peer]
 PublicKey = ${PEER_PUBKEY}
-AllowedIPs = 10.200.0.0/24,10.244.0.0/16,10.96.0.0/12,192.168.49.0/24  # bastion lan + on-prem pod/svc CIDRs
+AllowedIPs = ${ALLOWED_IPS}
 EOF
 
 systemctl enable --now wg-quick@wg0
