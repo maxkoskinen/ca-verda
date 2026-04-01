@@ -88,6 +88,12 @@ export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.19.0-1
 
 apt install -y nvidia-container-runtime cuda-drivers-fabricmanager-515 nvidia-headless-515-server
 
+GPU_RUNTIME_ARG=""
+if command -v nvidia-smi &>/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | grep -q .; then
+    echo "GPU detected — will set nvidia as default runtime"
+    GPU_RUNTIME_ARG="--default-runtime=nvidia"
+fi
+
 # ---------------------------------------------------------------------------
 # k3s agent
 # k3s uses its own bundled containerd — no external containerd needed.
@@ -95,7 +101,8 @@ apt install -y nvidia-container-runtime cuda-drivers-fabricmanager-515 nvidia-he
 # ---------------------------------------------------------------------------
 EXTRA_AGENT_ARGS="--node-ip ${WG_IP} \
     --flannel-iface=wg0 \
-    --kubelet-arg=provider-id=verda://${INSTANCE_ID}"
+    --kubelet-arg=provider-id=verda://${INSTANCE_ID} \
+    ${GPU_RUNTIME_ARG}"
 
 # inject labels
 if [ -n "${LABELS}" ]; then
