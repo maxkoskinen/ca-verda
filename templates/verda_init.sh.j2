@@ -25,10 +25,6 @@ echo "10.200.0.1 control-plane.minikube.internal" >> /etc/hosts
 # Get instance ID from Verda metadata service
 INSTANCE_ID="$(cat /var/lib/cloud/data/instance-id 2>/dev/null || true)"
 
-# update system
-apt-get update
-apt-get upgrade -y
-
 # setup wireguard
 apt-get install -y ca-certificates curl gpg apt-transport-https wireguard-tools
 
