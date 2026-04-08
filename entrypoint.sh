@@ -12,7 +12,6 @@ WG_IFACE=wg0
 : "${POD_CIDR:=10.42.0.0/16}"
 : "${SVC_CIDR:=10.43.0.0/16}"
 
-
 mkdir -p $WG_DIR
 
 if [ ! -f $WG_DIR/wg0.key ]; then

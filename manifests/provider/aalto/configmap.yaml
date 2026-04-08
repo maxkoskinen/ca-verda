@@ -32,7 +32,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.6
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -51,7 +50,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.6
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -70,7 +68,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.6
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -89,7 +86,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.6
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -108,7 +104,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.6
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -127,7 +122,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.60
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -146,7 +140,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.60
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -165,7 +158,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.60
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -184,7 +176,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.60
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -203,7 +194,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -222,7 +212,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -241,7 +230,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -260,7 +248,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -279,7 +266,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -298,7 +284,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -317,7 +302,6 @@ data:
         location: "FIN-01"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -336,7 +320,6 @@ data:
         location: "FIN-02"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"
@@ -355,7 +338,6 @@ data:
         location: "FIN-03"
         ssh_key_ids:
           - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-        startup_script_id: "script-uuid-here"
         hourly_price: 0.8262
         contract: "SPOT"
         pricing: "FIXED_PRICE"

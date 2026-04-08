@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WireguardPeerConfig:
     """Returned by reserve() — everything needed to render the startup script."""
-    reservation_id: str   # internal handle — pass to commit() or release()
+
+    reservation_id: str  # internal handle — pass to commit() or release()
     tunnel_ip: str
     private_key: str
     public_key: str
@@ -34,7 +35,7 @@ class WireguardPeerConfig:
 class _Reservation:
     reservation_id: str
     tunnel_ip: str
-    public_key: str   # node pubkey — written to bastion on commit()
+    public_key: str  # node pubkey — written to bastion on commit()
 
 
 class WireguardBackend(Protocol):
@@ -64,6 +65,7 @@ class LocalBackend:
     def exists(self, path: str) -> bool:
         return Path(path).exists()
 
+
 class SSHBackend:
     def __init__(self, host: str, port: int, user: str, key_path: str):
         self.host = host
@@ -74,8 +76,10 @@ class SSHBackend:
     def _ssh(self, remote_cmd: str, input: str | None = None) -> str:
         cmd = [
             "ssh",
-            "-i", self.key_path,
-            "-p", str(self.port),
+            "-i",
+            self.key_path,
+            "-p",
+            str(self.port),
             f"{self.user}@{self.host}",
             remote_cmd,
         ]
@@ -164,7 +168,9 @@ class WireguardService:
             tunnel_ip=tunnel_ip,
             public_key=pubkey,
         )
-        logger.debug("WireGuard IP reserved: %s (reservation=%s)", tunnel_ip, reservation_id)
+        logger.debug(
+            "WireGuard IP reserved: %s (reservation=%s)", tunnel_ip, reservation_id
+        )
 
         return WireguardPeerConfig(
             reservation_id=reservation_id,
@@ -173,10 +179,12 @@ class WireguardService:
             public_key=pubkey,
             peer_pubkey=self._get_peer_pubkey(),
             allowed_ips=self.config.cloud_allowed_ips + [self.config.tunnel_network],
-            wg_listen_port=str(self.config.listen_port)
+            wg_listen_port=str(self.config.listen_port),
         )
 
-    def commit(self, reservation_id: str, instance_id: str, node_endpoint: str | None = None) -> None:
+    def commit(
+        self, reservation_id: str, instance_id: str, node_endpoint: str | None = None
+    ) -> None:
         reservation = self._pending.pop(reservation_id, None)
         if reservation is None:
             raise KeyError(f"No pending reservation: {reservation_id!r}")
@@ -191,7 +199,11 @@ class WireguardService:
             logger.warning(f"committing failed with error: {e}")
             self._pending[reservation_id] = reservation
             return
-        logger.info("WireGuard peer committed: instance=%s ip=%s", instance_id, reservation.tunnel_ip)
+        logger.info(
+            "WireGuard peer committed: instance=%s ip=%s",
+            instance_id,
+            reservation.tunnel_ip,
+        )
 
     def release(self, reservation_id: str) -> None:
         """
@@ -202,7 +214,8 @@ class WireguardService:
         if reservation:
             logger.info(
                 "WireGuard reservation released: ip=%s reservation=%s",
-                reservation.tunnel_ip, reservation_id,
+                reservation.tunnel_ip,
+                reservation_id,
             )
         else:
             logger.warning("release: unknown reservation_id=%s", reservation_id)
@@ -285,7 +298,7 @@ class WireguardService:
 
     def _generate_keypair(self) -> tuple[str, str]:
         priv = self.backend.run(["wg", "genkey"]).strip()
-        pub  = self.backend.run(["wg", "pubkey"], input=priv).strip()
+        pub = self.backend.run(["wg", "pubkey"], input=priv).strip()
         return priv, pub
 
     def _get_peer_pubkey(self) -> str:
@@ -294,12 +307,22 @@ class WireguardService:
             self._peer_pubkey = self.backend.run(["wg", "pubkey"], input=priv).strip()
         return self._peer_pubkey
 
-    def _add_peer(self, pubkey: str, tunnel_ip: str, instance_id: str, node_endpoint: str | None = None) -> None:
+    def _add_peer(
+        self,
+        pubkey: str,
+        tunnel_ip: str,
+        instance_id: str,
+        node_endpoint: str | None = None,
+    ) -> None:
         allowed = f"{tunnel_ip}/32,10.244.0.0/16,10.96.0.0/12,192.168.49.0/24"
         cmd = [
-            "wg", "set", self.config.interface,
-            "peer", pubkey,
-            "allowed-ips", allowed,
+            "wg",
+            "set",
+            self.config.interface,
+            "peer",
+            pubkey,
+            "allowed-ips",
+            allowed,
         ]
         if node_endpoint:
             cmd += ["endpoint", node_endpoint]
@@ -326,7 +349,10 @@ class WireguardService:
             line = lines[i]
             if line.strip() == "[Peer]":
                 block, j = [line], i + 1
-                while j < len(lines) and lines[j].strip() not in ("[Peer]", "[Interface]"):
+                while j < len(lines) and lines[j].strip() not in (
+                    "[Peer]",
+                    "[Interface]",
+                ):
                     block.append(lines[j])
                     j += 1
 

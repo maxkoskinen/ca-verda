@@ -2,7 +2,7 @@ from k8s.io.api.core.v1 import generated_pb2 as core_v1
 from k8s.io.apimachinery.pkg.api.resource import generated_pb2 as resource_pb2
 from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
 from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
-from verda_cloud_provider.instance_metadata_service import InstanceTypeMetadata
+from verda_cloud_provider.services.instance_metadata_service import InstanceTypeMetadata
 from verda_cloud_provider.settings import NodeGroupConfig
 
 _VALID_EFFECTS = {"NoSchedule", "PreferNoSchedule", "NoExecute"}
@@ -25,6 +25,7 @@ def _parse_taints(taints: dict[str, str]) -> list[core_v1.Taint]:
         result.append(core_v1.Taint(key=key, value=value, effect=effect))
     return result
 
+
 class NodeTemplateService:
     def build(
         self,
@@ -33,19 +34,19 @@ class NodeTemplateService:
         metadata: InstanceTypeMetadata,
     ) -> core_v1.Node:
         cpu_mc = metadata.cpu_cores * 1000
-        mem_bytes = metadata.memory_gb * 1024 ** 3
+        mem_bytes = metadata.memory_gb * 1024**3
         cpu_reserved = min(100, int(cpu_mc * 0.06))
-        mem_reserved = max(int(0.5 * 1024 ** 3), int(mem_bytes * 0.05))
+        mem_reserved = max(int(0.5 * 1024**3), int(mem_bytes * 0.05))
 
         capacity = {
-            "cpu":    resource_pb2.Quantity(string=f"{cpu_mc}m"),
+            "cpu": resource_pb2.Quantity(string=f"{cpu_mc}m"),
             "memory": resource_pb2.Quantity(string=str(mem_bytes)),
-            "pods":   resource_pb2.Quantity(string="110"),
+            "pods": resource_pb2.Quantity(string="110"),
         }
         allocatable = {
-            "cpu":    resource_pb2.Quantity(string=f"{cpu_mc - cpu_reserved}m"),
+            "cpu": resource_pb2.Quantity(string=f"{cpu_mc - cpu_reserved}m"),
             "memory": resource_pb2.Quantity(string=str(mem_bytes - mem_reserved)),
-            "pods":   resource_pb2.Quantity(string="110"),
+            "pods": resource_pb2.Quantity(string="110"),
         }
 
         gpu_type = gpu_type_for_model(metadata.gpu_model)
@@ -56,8 +57,8 @@ class NodeTemplateService:
 
         labels = {
             "node.kubernetes.io/instance-type": config.instance_type,
-            "topology.kubernetes.io/zone":      config.location,
-            "kubernetes.io/os":   "linux",
+            "topology.kubernetes.io/zone": config.location,
+            "kubernetes.io/os": "linux",
             "kubernetes.io/arch": "amd64",
         }
         if gpu_type:

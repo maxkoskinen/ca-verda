@@ -95,7 +95,7 @@ class InstanceStateStore:
                         provider_id=f"verda://{instance_id}",
                         created_at=created_at,
                         status=status,
-                         node_ip=node_ip,
+                        node_ip=node_ip,
                     )
                 else:
                     # Update mutable fields (status/hostname) while preserving created_at
@@ -111,5 +111,5 @@ class InstanceStateStore:
                             provider_id=existing.provider_id,
                             created_at=existing.created_at,
                             status=status,
-                            node_ip=node_ip
+                            node_ip=node_ip,
                         )
