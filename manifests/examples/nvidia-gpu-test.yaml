@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: nbody-gpu-benchmark
-  namespace: default
+  namespace: test
 spec:
   restartPolicy: OnFailure
   nodeSelector:

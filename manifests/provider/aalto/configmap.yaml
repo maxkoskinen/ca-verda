@@ -347,3 +347,57 @@ data:
           topology.kubernetes.io/zone: "verda"
         taints:
           node-role.kubernetes.io/cloud: true:NoSchedule
+
+      1RTXPRO6000-30V-FIN-01:
+        instance_type: "1RTXPRO6000.30V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        location: "FIN-01"
+        ssh_key_ids:
+          - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+        hourly_price: 0.8262
+        contract: "SPOT"
+        pricing: "FIXED_PRICE"
+        labels:
+          verda.com/gpu: "true"
+          node.kubernetes.io/role: "cloud-worker"
+          topology.kubernetes.io/zone: "verda"
+        taints:
+          node-role.kubernetes.io/cloud: true:NoSchedule
+
+      1RTXPRO6000-30V-FIN-02:
+        instance_type: "1RTXPRO6000.30V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        location: "FIN-02"
+        ssh_key_ids:
+          - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+        hourly_price: 0.8262
+        contract: "SPOT"
+        pricing: "FIXED_PRICE"
+        labels:
+          verda.com/gpu: "true"
+          node.kubernetes.io/role: "cloud-worker"
+          topology.kubernetes.io/zone: "verda"
+        taints:
+          node-role.kubernetes.io/cloud: true:NoSchedule
+
+      1RTXPRO6000-30V-FIN-03:
+        instance_type: "1RTXPRO6000.30V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        location: "FIN-03"
+        ssh_key_ids:
+          - "15629643-9ac2-4893-b7db-e5a2efd700cd"
+        hourly_price: 0.8262
+        contract: "SPOT"
+        pricing: "FIXED_PRICE"
+        labels:
+          verda.com/gpu: "true"
+          node.kubernetes.io/role: "cloud-worker"
+          topology.kubernetes.io/zone: "verda"
+        taints:
+          node-role.kubernetes.io/cloud: true:NoSchedule

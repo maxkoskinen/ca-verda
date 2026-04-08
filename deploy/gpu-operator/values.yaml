@@ -34,7 +34,7 @@ node-feature-discovery:
         effect: NoSchedule
       - key: node.kubernetes.io/role
         operator: Equal
-        value: cloud-worker
+        value: cloud
         effect: NoSchedule
     config:
       sources:
