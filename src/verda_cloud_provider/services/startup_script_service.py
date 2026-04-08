@@ -4,30 +4,39 @@ import os
 from jinja2 import Template
 from verda import VerdaClient
 
+from verda_cloud_provider.services.wg_service import WireguardPeerConfig
 from verda_cloud_provider.settings import KubernetesConfig
-from verda_cloud_provider.wg_service import WireguardPeerConfig
 
 logger = logging.getLogger(__name__)
 
 
 class StartupScriptService:
-    def __init__(self, client: VerdaClient, template_path: str, k8s_config: KubernetesConfig):
+    def __init__(
+        self, client: VerdaClient, template_path: str, k8s_config: KubernetesConfig
+    ):
         self.client = client
         self.k8s_config = k8s_config
         self.k8s_token = os.environ.get("K8S_JOIN_TOKEN", None)
         self.k8s_ca_hash = os.environ.get("K8S_CA_HASH", None)
 
         if not self.k8s_token:
-            logger.error("No join token provided, cloud nodes wont be able to join cluster")
+            logger.error(
+                "No join token provided, cloud nodes wont be able to join cluster"
+            )
 
         try:
-            with open(template_path, 'r') as f:
+            with open(template_path, "r") as f:
                 self.template = Template(f.read())
         except Exception as e:
             logger.error("Failed to load startup script template: %s", e)
             raise
 
-    def _render_script(self, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
+    def _render_script(
+        self,
+        labels: dict[str, str],
+        taints: dict[str, str],
+        wg: WireguardPeerConfig | None = None,
+    ) -> str:
         label_str = ",".join(f"{k}={v}" for k, v in labels.items())
         taint_str = ",".join(f"{k}={v}" for k, v in taints.items())
         return self.template.render(
@@ -40,10 +49,16 @@ class StartupScriptService:
             wg_private_key=wg.private_key if wg else None,
             wg_peer_pubkey=wg.peer_pubkey if wg else None,
             wg_allowed_ips=",".join(wg.allowed_ips) if wg else None,
-            wg_listen_port=wg.wg_listen_port if wg else None
+            wg_listen_port=wg.wg_listen_port if wg else None,
         )
 
-    def ensure_startup_script(self, group_id: str, labels: dict[str, str], taints: dict[str,str], wg: WireguardPeerConfig | None = None) -> str:
+    def ensure_startup_script(
+        self,
+        group_id: str,
+        labels: dict[str, str],
+        taints: dict[str, str],
+        wg: WireguardPeerConfig | None = None,
+    ) -> str:
         """
         Create a per-node startup script with the rendered wg config baked in.
         Returns the script ID. Caller should delete it after instance creation.
@@ -60,4 +75,6 @@ class StartupScriptService:
             self.client.startup_scripts.delete_by_id(id=script_id)
             logger.debug("Deleted startup script %s", script_id)
         except Exception:
-            logger.warning("Failed to delete startup script %s", script_id, exc_info=True)
+            logger.warning(
+                "Failed to delete startup script %s", script_id, exc_info=True
+            )

@@ -34,11 +34,17 @@ spec:
       initContainers:
         - name: add-route
           image: busybox:1.36
+          env:
+            - name: WG_GATEWAY_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: verda-provider-config
+                  key: WG_GATEWAY_ADDR
           command:
             - /bin/sh
             - -c
             - |
-              ip route add 10.200.0.0/16 via 10.164.4.101 || true
+              ip route replace 10.200.0.0/16 via "${WG_GATEWAY_ADDR}"
           securityContext:
             privileged: true
       containers:

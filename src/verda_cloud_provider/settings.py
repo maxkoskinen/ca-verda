@@ -15,8 +15,10 @@ _ALLOWED_LOCATIONS = {
 _ALLOWED_CONTRACTS = set(get_args(Contract))
 _ALLOWED_PRICING = set(get_args(Pricing))
 
+
 class LocalWireguardBackendConfig(BaseModel):
     type: Literal["local"] = "local"
+
 
 class SSHWireguardBackendConfig(BaseModel):
     type: Literal["ssh"] = "ssh"
@@ -24,6 +26,7 @@ class SSHWireguardBackendConfig(BaseModel):
     user: str
     private_key_path: str
     port: int = 22
+
 
 WireguardBackendConfig = Union[
     LocalWireguardBackendConfig,
@@ -37,17 +40,15 @@ class WireguardConfig(BaseModel):
     listen_port: int = 51820
     server_pub_key: str | None = None
     server_privkey_path: str = "/etc/wireguard/wg0.key"
-    cloud_allowed_ips: list[str] = field(
-        default_factory=lambda: ["10.200.0.0/24"]
-    )
+    cloud_allowed_ips: list[str] = field(default_factory=lambda: ["10.200.0.0/24"])
     keepalive: int = 25
     node_wg_port: int = 51820
-    backend: WireguardBackendConfig = Field(
-        default_factory=LocalWireguardBackendConfig
-    )
+    backend: WireguardBackendConfig = Field(default_factory=LocalWireguardBackendConfig)
+
 
 class KubernetesConfig(BaseModel):
     endpoint: str
+
 
 class ResourcesConfig(BaseModel):
     cpu: int = Field(gt=0)
@@ -64,7 +65,6 @@ class NodeGroupConfig(BaseModel):
     max_size: int = Field(gt=0)
     location: str = "FIN-01"
     ssh_key_ids: list[str] = Field(default_factory=list)
-    startup_script_id: str | None = None
     contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "PAY_AS_YOU_GO"
     pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = "DYNAMIC_PRICE"
     hourly_price: float

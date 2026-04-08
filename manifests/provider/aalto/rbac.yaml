@@ -1,0 +1,31 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verda-cloud-provider
+  labels:
+    app: verda-cloud-provider
+    component: cloud-provider
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes/status"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: verda-cloud-provider
+  labels:
+    app: verda-cloud-provider
+    component: cloud-provider
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: verda-cloud-provider
+subjects:
+  - kind: ServiceAccount
+    name: verda-cloud-provider
+    namespace: kube-system

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class InstanceTypeMetadata:
     """Metadata for a Verda instance type."""
+
     instance_type: str
     cpu_cores: int
     memory_gb: int
@@ -67,11 +68,13 @@ class InstanceMetadataCache:
                     continue
                 metadata = InstanceTypeMetadata(
                     instance_type=instance.instance_type,
-                    cpu_cores=instance.cpu.get("number_of_cores",0),
-                    memory_gb=instance.memory.get("size_in_gigabytes",0),
-                    gpu_memory_gb=instance.gpu_memory.get("size_in_gigabytes",0),
+                    cpu_cores=instance.cpu.get("number_of_cores", 0),
+                    memory_gb=instance.memory.get("size_in_gigabytes", 0),
+                    gpu_memory_gb=instance.gpu_memory.get("size_in_gigabytes", 0),
                     gpu_count=instance.gpu.get("number_of_gpus", 0),
-                    gpu_model=instance.gpu.get("model", None) if instance.gpu.get("number_of_gpus", 0) > 0 else None,
+                    gpu_model=instance.gpu.get("model", None)
+                    if instance.gpu.get("number_of_gpus", 0) > 0
+                    else None,
                     current_spot_price=instance.spot_price_per_hour,
                     current_ondemand_price=instance.price_per_hour,
                 )
