@@ -98,13 +98,17 @@ class VerdaCloudProvider(CloudProviderServicer):
         configured_types = {cfg.instance_type for cfg in self.node_groups_config.values()}
         self.metadata_cache = InstanceMetadataCache(self.client, configured_types)
 
-        startup_script_template_path = "templates/verda_init.sh.j2"
+        if self.app_config.script_template_path:
+            startup_script_template_path = self.app_config.script_template_path
+            logger.info("Using custom startup script template: %s", startup_script_template_path)
+        else:
+            startup_script_template_path = "templates/verda_init.sh.j2"
 
-        match self.app_config.script_template:
-            case "k3s":
-                startup_script_template_path = "templates/verda_init_k3s.sh.j2"
-            case _:
-                pass
+            match self.app_config.script_template:
+                case "k3s":
+                    startup_script_template_path = "templates/verda_init_k3s.sh.j2"
+                case _:
+                    pass
 
         self.startup_script_service = StartupScriptService(
             client=self.client,

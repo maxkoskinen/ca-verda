@@ -104,6 +104,7 @@ class AppConfig(BaseModel):
     kubernetes: KubernetesConfig
     wireguard: WireguardConfig | None = None
     script_template: Literal["k3s"] | None = None
+    script_template_path: str | None = None
 
     @classmethod
     def load(cls, path: str = "config.yaml") -> "AppConfig":
