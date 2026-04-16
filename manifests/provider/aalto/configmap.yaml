@@ -381,7 +381,7 @@ data:
       # ── RTX PRO 6000 96GB ────────────────────────────────────────────────
       1RTXPRO6000-30V:
         instance_type: "1RTXPRO6000.30V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -392,7 +392,7 @@ data:
 
       2RTXPRO6000-60V:
         instance_type: "2RTXPRO6000.60V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -403,7 +403,7 @@ data:
 
       4RTXPRO6000-120V:
         instance_type: "4RTXPRO6000.120V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -414,7 +414,7 @@ data:
 
       8RTXPRO6000-240V:
         instance_type: "8RTXPRO6000.240V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -422,3 +422,48 @@ data:
           - "FIN-02"
           - "FIN-03"
         hourly_price: 6.6096
+
+      # ── B200  ────────────────────────────────────────────────
+      1B200-30V:
+        instance_type: "1B200.30V"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      2B200-60V:
+        instance_type: "2B200.60V"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      4B200-120V:
+        instance_type: "4B200.120V"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      8B200-240V:
+        instance_type: "8B200.240V"
+        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400

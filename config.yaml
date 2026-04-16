@@ -365,7 +365,7 @@ node_groups:
   # ── RTX PRO 6000 96GB ────────────────────────────────────────────────
   1RTXPRO6000-30V:
     instance_type: "1RTXPRO6000.30V"
-    image: "ubuntu-24.04-cuda-12.6-docker"
+    image: "ubuntu-22.04-cuda-12.8-open-docker"
     min_size: 0
     max_size: 10
     locations:
@@ -376,7 +376,7 @@ node_groups:
 
   2RTXPRO6000-60V:
     instance_type: "2RTXPRO6000.60V"
-    image: "ubuntu-24.04-cuda-12.6-docker"
+    image: "ubuntu-22.04-cuda-12.8-open-docker"
     min_size: 0
     max_size: 10
     locations:
@@ -387,7 +387,7 @@ node_groups:
 
   4RTXPRO6000-120V:
     instance_type: "4RTXPRO6000.120V"
-    image: "ubuntu-24.04-cuda-12.6-docker"
+    image: "ubuntu-22.04-cuda-12.8-open-docker"
     min_size: 0
     max_size: 10
     locations:
@@ -398,7 +398,7 @@ node_groups:
 
   8RTXPRO6000-240V:
     instance_type: "8RTXPRO6000.240V"
-    image: "ubuntu-24.04-cuda-12.6-docker"
+    image: "ubuntu-22.04-cuda-12.8-open-docker"
     min_size: 0
     max_size: 10
     locations:
