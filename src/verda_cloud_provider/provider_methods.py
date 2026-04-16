@@ -214,9 +214,15 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
                     wg_peer = self.wg_service.reserve()
                     logger.debug(f"reserved wg peer: {wg_peer.tunnel_ip}")
 
+                node_labels = {
+                    "verda.com/instance-type": config.instance_type,
+                    "verda.com/location": config.location,
+                    **config.labels,
+                }
+
                 startup_script_id = self.startup_script_service.ensure_startup_script(
                     group_id=group_id,
-                    labels=config.labels,
+                    labels=node_labels,
                     taints=config.taints,
                     wg=wg_peer,
                 )
