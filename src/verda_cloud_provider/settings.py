@@ -69,6 +69,7 @@ class NodeGroupConfig(BaseModel):
     pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = "DYNAMIC_PRICE"
     hourly_price: float
     resources: ResourcesConfig | None = None
+    os_volume_gb: int | None = None
     labels: dict[str, str] = Field(default_factory=dict)
     taints: dict[str, str] = Field(default_factory=dict)
 
@@ -118,6 +119,7 @@ class NodeGroupInputConfig(BaseModel):
     pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = "DYNAMIC_PRICE"
     hourly_price: float
     resources: ResourcesConfig | None = None
+    os_volume_gb: int | None = None
     labels: dict[str, str] = Field(default_factory=dict)
     taints: dict[str, str] = Field(default_factory=dict)
 
@@ -159,6 +161,7 @@ class NodeGroupInputConfig(BaseModel):
             pricing=self.pricing,
             hourly_price=self.hourly_price,
             resources=self.resources,
+            os_volume_gb=self.os_volume_gb,
             labels=dict(self.labels),
             taints=dict(self.taints),
         )
@@ -185,7 +188,7 @@ class NodeGroupInputConfig(BaseModel):
             }
 
 
-_NODE_GROUP_DEFAULT_KEYS = ("ssh_key_ids", "contract", "pricing", "labels", "taints")
+_NODE_GROUP_DEFAULT_KEYS = ("ssh_key_ids", "contract", "pricing", "os_volume_gb", "labels", "taints")
 _DICT_MERGE_KEYS = {"labels", "taints"}
 
 
@@ -202,6 +205,7 @@ class AppConfig(BaseModel):
     pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = Field(
         default="DYNAMIC_PRICE", exclude=True
     )
+    os_volume_gb: int | None = Field(default=100, exclude=True)
     labels: dict[str, str] = Field(default_factory=dict, exclude=True)
     taints: dict[str, str] = Field(default_factory=dict, exclude=True)
 
