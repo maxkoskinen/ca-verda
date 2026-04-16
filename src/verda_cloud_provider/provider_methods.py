@@ -216,6 +216,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
 
                 node_labels = {
                     "verda.com/instance-type": config.instance_type,
+                    "verda.com/location": config.location,
                     **config.labels,
                 }
 

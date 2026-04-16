@@ -61,7 +61,8 @@ class NodeTemplateService:
 
         labels = {
             "verda.com/instance-type": config.instance_type,
-            "topology.kubernetes.io/zone": config.location,
+            "verda.com/location": config.location,
+            "topology.kubernetes.io/zone": "verda",
             "kubernetes.io/os": "linux",
             "kubernetes.io/arch": "amd64",
         }
