@@ -29,7 +29,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.6
+    hourly_price: 0.1381
 
   2V100-10V:
     instance_type: "2V100.10V"
@@ -40,7 +40,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.2
+    hourly_price: 0.2762
 
   4V100-20V:
     instance_type: "4V100.20V"
@@ -51,7 +51,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 2.4
+    hourly_price: 0.5524
 
   8V100-48V:
     instance_type: "8V100.48V"
@@ -62,7 +62,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 4.8
+    hourly_price: 1.105
 
   # ── RTX A6000 48GB ────────────────────────────────────────────────────
   1A6000-10V:
@@ -74,7 +74,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.6
+    hourly_price: 0.49
 
   2A6000-20V:
     instance_type: "2A6000.20V"
@@ -85,7 +85,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.2
+    hourly_price: 0.98
 
   4A6000-40V:
     instance_type: "4A6000.40V"
@@ -96,7 +96,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 2.4
+    hourly_price: 1.96
 
   8A6000-80V:
     instance_type: "8A6000.80V"
@@ -107,7 +107,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 4.8
+    hourly_price: 3.92
 
   # ── CPU Node ──────────────────────────────────────────────────────────
   CPU-4V-16G:
@@ -119,7 +119,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.60
+    hourly_price: 0.0279
     labels:
       verda.com/gpu: "false"
 
@@ -132,7 +132,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.2
+    hourly_price: 0.0558
     labels:
       verda.com/gpu: "false"
 
@@ -145,7 +145,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 2.4
+    hourly_price: 0.1116
     labels:
       verda.com/gpu: "false"
 
@@ -158,7 +158,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 4.8
+    hourly_price: 0.2232
     labels:
       verda.com/gpu: "false"
 
@@ -171,7 +171,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 9.6
+    hourly_price: 0.4464
     labels:
       verda.com/gpu: "false"
 
@@ -184,7 +184,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 14.4
+    hourly_price: 0.6696
     labels:
       verda.com/gpu: "false"
 
@@ -197,7 +197,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 18.0
+    hourly_price: 0.837
     labels:
       verda.com/gpu: "false"
 
@@ -210,7 +210,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 27.0
+    hourly_price: 1.256
     labels:
       verda.com/gpu: "false"
 
@@ -223,9 +223,54 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 54.0
+    hourly_price: 2.511
     labels:
       verda.com/gpu: "false"
+
+  # ── L40S 48GB ─────────────────────────────────────────────────────────
+  1L40S-20V:
+    instance_type: "1L40S.20V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 0.9143
+
+  2L40S-40V:
+    instance_type: "2L40S.40V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 1.829
+
+  4L40S-80V:
+    instance_type: "4L40S.80V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 3.657
+
+  8L40S-160V:
+    instance_type: "8L40S.160V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 7.314
 
   # ── RTX 6000 Ada 48GB ────────────────────────────────────────────────
   1RTX6000ADA-10V:
@@ -248,7 +293,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.6524
+    hourly_price: 1.652
 
   4RTX6000ADA-40V:
     instance_type: "4RTX6000ADA.40V"
@@ -259,7 +304,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 3.3048
+    hourly_price: 3.305
 
   8RTX6000ADA-80V:
     instance_type: "8RTX6000ADA.80V"
@@ -270,7 +315,30 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 6.6096
+    hourly_price: 6.61
+
+  # ── A100 SXM4 40GB ───────────────────────────────────────────────────
+  1A100-40S-22V:
+    instance_type: "1A100.40S.22V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 0.7211
+
+  8A100-40S-176V:
+    instance_type: "8A100.40S.176V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 5.769
 
   # ── A100 SXM4 80GB ───────────────────────────────────────────────────
   1A100-22V:
@@ -282,7 +350,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.8262
+    hourly_price: 1.29
 
   2A100-44V:
     instance_type: "2A100.44V"
@@ -293,7 +361,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.6524
+    hourly_price: 2.58
 
   4A100-88V:
     instance_type: "4A100.88V"
@@ -304,7 +372,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 3.3048
+    hourly_price: 5.16
 
   8A100-176V:
     instance_type: "8A100.176V"
@@ -315,7 +383,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 6.6096
+    hourly_price: 10.32
 
   # ── H100 SXM5 80GB ───────────────────────────────────────────────────
   1H100-80S-30V:
@@ -327,7 +395,18 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.8262
+    hourly_price: 2.29
+
+  1H100-80S-32V:
+    instance_type: "1H100.80S.32V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 2.29
 
   2H100-80S-80V:
     instance_type: "2H100.80S.80V"
@@ -338,7 +417,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.6524
+    hourly_price: 4.58
 
   4H100-80S-176V:
     instance_type: "4H100.80S.176V"
@@ -349,7 +428,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 3.3048
+    hourly_price: 9.16
 
   8H100-80S-176V:
     instance_type: "8H100.80S.176V"
@@ -360,7 +439,142 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 6.6096
+    hourly_price: 18.32
+
+  # ── H200 SXM 141GB ───────────────────────────────────────────────────
+  1H200-141S-44V:
+    instance_type: "1H200.141S.44V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 2.99
+
+  2H200-141S-88V:
+    instance_type: "2H200.141S.88V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 5.98
+
+  4H200-141S-176V:
+    instance_type: "4H200.141S.176V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 11.96
+
+  8H200-141S-176V:
+    instance_type: "8H200.141S.176V"
+    image: "ubuntu-24.04-cuda-12.6-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 23.92
+
+  # ── B200 SXM 192GB ───────────────────────────────────────────────────
+  1B200-30V:
+    instance_type: "1B200.30V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 3.99
+
+  2B200-60V:
+    instance_type: "2B200.60V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 7.98
+
+  4B200-120V:
+    instance_type: "4B200.120V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 15.96
+
+  8B200-240V:
+    instance_type: "8B200.240V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 31.92
+
+  # ── B300 SXM 288GB ───────────────────────────────────────────────────
+  1B300-30V:
+    instance_type: "1B300.30V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 4.95
+
+  2B300-60V:
+    instance_type: "2B300.60V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 9.9
+
+  4B300-120V:
+    instance_type: "4B300.120V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 19.8
+
+  8B300-240V:
+    instance_type: "8B300.240V"
+    image: "ubuntu-24.04-cuda-12.8-open-docker"
+    min_size: 0
+    max_size: 10
+    locations:
+      - "FIN-01"
+      - "FIN-02"
+      - "FIN-03"
+    hourly_price: 39.6
 
   # ── RTX PRO 6000 96GB ────────────────────────────────────────────────
   1RTXPRO6000-30V:
@@ -372,7 +586,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 0.8262
+    hourly_price: 1.39
 
   2RTXPRO6000-60V:
     instance_type: "2RTXPRO6000.60V"
@@ -383,7 +597,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 1.6524
+    hourly_price: 2.78
 
   4RTXPRO6000-120V:
     instance_type: "4RTXPRO6000.120V"
@@ -394,7 +608,7 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 3.3048
+    hourly_price: 5.56
 
   8RTXPRO6000-240V:
     instance_type: "8RTXPRO6000.240V"
@@ -405,4 +619,4 @@ node_groups:
       - "FIN-01"
       - "FIN-02"
       - "FIN-03"
-    hourly_price: 6.6096
+    hourly_price: 11.12
