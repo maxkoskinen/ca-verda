@@ -7,6 +7,7 @@ spec:
   restartPolicy: OnFailure
   nodeSelector:
     topology.kubernetes.io/zone: verda
+    # verda.com/instance-type: "1RTXPRO6000.30V" # when verda is full target specific instance type
   tolerations:
     - key: "node-role.kubernetes.io/cloud"
       operator: "Equal"
