@@ -1,7 +1,11 @@
 from k8s.io.api.core.v1 import generated_pb2 as core_v1
 from k8s.io.apimachinery.pkg.api.resource import generated_pb2 as resource_pb2
 from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
-from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
+from verda_cloud_provider.gpu_types import (
+    GPU_LABEL,
+    gpu_operator_labels,
+    gpu_spec_for_model,
+)
 from verda_cloud_provider.services.instance_metadata_service import InstanceTypeMetadata
 from verda_cloud_provider.settings import NodeGroupConfig
 
@@ -49,21 +53,29 @@ class NodeTemplateService:
             "pods": resource_pb2.Quantity(string="110"),
         }
 
-        gpu_type = gpu_type_for_model(metadata.gpu_model)
+        gpu_spec = gpu_spec_for_model(metadata.gpu_model)
         if metadata.gpu_count > 0:
             gpu_qty = resource_pb2.Quantity(string=str(metadata.gpu_count))
             capacity["nvidia.com/gpu"] = gpu_qty
             allocatable["nvidia.com/gpu"] = gpu_qty
 
         labels = {
-            "node.kubernetes.io/instance-type": config.instance_type,
+            "verda.com/instance-type": config.instance_type,
             "topology.kubernetes.io/zone": config.location,
             "kubernetes.io/os": "linux",
             "kubernetes.io/arch": "amd64",
         }
-        if gpu_type:
-            labels[GPU_LABEL] = gpu_type
-            labels["nvidia.com/gpu.product"] = gpu_type
+        if gpu_spec:
+            # Verda-specific label
+            labels[GPU_LABEL] = gpu_spec.gpu_type
+            # Standard NVIDIA GPU Operator / GPU Feature Discovery labels
+            labels.update(gpu_operator_labels(
+                gpu_spec,
+                metadata.gpu_count,
+                gpu_memory_gb=metadata.gpu_memory_gb,
+            ))
+
+        # User-supplied labels from the node group config take highest precedence
         for k, v in config.labels.items():
             labels[k] = v
 
