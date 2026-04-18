@@ -72,6 +72,7 @@ class NodeGroupConfig(BaseModel):
     os_volume_gb: int | None = None
     labels: dict[str, str] = Field(default_factory=dict)
     taints: dict[str, str] = Field(default_factory=dict)
+    override_resources: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("max_size")
     def check_max_size(cls, v, values):
@@ -122,6 +123,7 @@ class NodeGroupInputConfig(BaseModel):
     os_volume_gb: int | None = None
     labels: dict[str, str] = Field(default_factory=dict)
     taints: dict[str, str] = Field(default_factory=dict)
+    override_resources: dict[str, str] = Field(default_factory=dict)
 
     # Accept legacy "location" key as an alias for "locations"
     location: str | None = Field(default=None, exclude=True)
@@ -164,6 +166,7 @@ class NodeGroupInputConfig(BaseModel):
             os_volume_gb=self.os_volume_gb,
             labels=dict(self.labels),
             taints=dict(self.taints),
+            override_resources=dict(self.override_resources),
         )
 
     def expand(self, key: str) -> dict[str, NodeGroupConfig]:
@@ -188,8 +191,8 @@ class NodeGroupInputConfig(BaseModel):
             }
 
 
-_NODE_GROUP_DEFAULT_KEYS = ("ssh_key_ids", "contract", "pricing", "os_volume_gb", "labels", "taints")
-_DICT_MERGE_KEYS = {"labels", "taints"}
+_NODE_GROUP_DEFAULT_KEYS = ("ssh_key_ids", "contract", "pricing", "os_volume_gb", "labels", "taints", "override_resources")
+_DICT_MERGE_KEYS = {"labels", "taints", "override_resources"}
 
 
 class AppConfig(BaseModel):
@@ -208,6 +211,7 @@ class AppConfig(BaseModel):
     os_volume_gb: int | None = Field(default=100, exclude=True)
     labels: dict[str, str] = Field(default_factory=dict, exclude=True)
     taints: dict[str, str] = Field(default_factory=dict, exclude=True)
+    override_resources: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     @model_validator(mode="before")
     @classmethod

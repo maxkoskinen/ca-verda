@@ -59,6 +59,15 @@ class NodeTemplateService:
             capacity["nvidia.com/gpu"] = gpu_qty
             allocatable["nvidia.com/gpu"] = gpu_qty
 
+        # Apply override_resources – replaces any auto-detected value for the
+        # given resource key in both capacity and allocatable.  This is
+        # primarily used for MIG configurations where the number of advertised
+        # GPU devices differs from the physical GPU count.
+        for resource_name, quantity_str in config.override_resources.items():
+            qty = resource_pb2.Quantity(string=str(quantity_str))
+            capacity[resource_name] = qty
+            allocatable[resource_name] = qty
+
         labels = {
             "verda.com/instance-type": config.instance_type,
             "verda.com/location": config.location,
