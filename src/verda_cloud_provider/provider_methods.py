@@ -10,6 +10,7 @@ from grpc import ServicerContext
 from verda import VerdaClient
 from verda.constants import Actions
 from verda.constants import InstanceStatus as VerdaInstanceStatus
+from verda.instances import OSVolume, OnSpotDiscontinue
 
 from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     CleanupRequest,
@@ -229,6 +230,12 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
 
                 logger.info(f"Creating instance {i + 1}/{delta}: {hostname}")
 
+                os_volume = (
+                    OSVolume(name=f"{hostname}-os", size=config.os_volume_gb, on_spot_discontinue="delete_permanently")
+                    if config.os_volume_gb
+                    else None
+                )
+
                 instance = self.client.instances.create(
                     instance_type=config.instance_type,
                     image=config.image,
@@ -237,6 +244,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
                     location=config.location,
                     ssh_key_ids=config.ssh_key_ids,
                     startup_script_id=startup_script_id,
+                    os_volume=os_volume,
                     is_spot=True,
                     # contract=config.contract,
                     # pricing=config.pricing
