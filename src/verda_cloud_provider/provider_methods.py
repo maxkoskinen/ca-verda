@@ -533,8 +533,8 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
             node = self.template_service.build(group_id, config, instance_metadata)
             logger.debug(
                 f"TemplateNodeInfo({group_id}): labels={dict(node.metadata.labels)}, "
-                f"capacity keys={list(node.status.capacity.keys())}, "
-                f"allocatable keys={list(node.status.allocatable.keys())}"
+                f"capacity={{{', '.join(f'{k}: {v.string}' for k, v in node.status.capacity.items())}}}, "
+                f"allocatable={{{', '.join(f'{k}: {v.string}' for k, v in node.status.allocatable.items())}}}"
             )
             return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
         except Exception:
