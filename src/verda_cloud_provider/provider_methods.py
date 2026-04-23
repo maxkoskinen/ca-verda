@@ -230,8 +230,9 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
 
                 logger.info(f"Creating instance {i + 1}/{delta}: {hostname}")
 
+                on_spot_discontinue = "delete_permanently" if config.contract == "SPOT" else None
                 os_volume = (
-                    OSVolume(name=f"{hostname}-os", size=config.os_volume_gb, on_spot_discontinue="delete_permanently")
+                    OSVolume(name=f"{hostname}-os", size=config.os_volume_gb, on_spot_discontinue=on_spot_discontinue)
                     if config.os_volume_gb
                     else None
                 )
