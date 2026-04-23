@@ -116,7 +116,7 @@ class NodeGroupInputConfig(BaseModel):
     max_size: int = Field(gt=0)
     locations: list[str] | str = Field(default="FIN-01")
     ssh_key_ids: list[str] = Field(default_factory=list)
-    contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "PAY_AS_YOU_GO"
+    contract: Literal["LONG_TERM", "PAY_AS_YOU_GO", "SPOT"] = "SPOT"
     pricing: Literal["FIXED_PRICE", "DYNAMIC_PRICE"] = "DYNAMIC_PRICE"
     hourly_price: float
     resources: ResourcesConfig | None = None

@@ -10,7 +10,7 @@ from grpc import ServicerContext
 from verda import VerdaClient
 from verda.constants import Actions
 from verda.constants import InstanceStatus as VerdaInstanceStatus
-from verda.instances import OSVolume, OnSpotDiscontinue
+from verda.instances import Contract, OSVolume
 
 from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     CleanupRequest,
@@ -245,8 +245,8 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
                     ssh_key_ids=config.ssh_key_ids,
                     startup_script_id=startup_script_id,
                     os_volume=os_volume,
-                    is_spot=True,
-                    # contract=config.contract,
+                    is_spot=False,
+                    contract=config.contract,
                     # pricing=config.pricing
                 )
 
