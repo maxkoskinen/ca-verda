@@ -514,6 +514,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
 
         # 1. Get config for this group
         if group_id not in self.node_groups_config:
+            logger.warning(f"TemplateNodeInfo({group_id}): not found in config")
             context.set_code(grpc.StatusCode.NOT_FOUND)
             return NodeGroupTemplateNodeInfoResponse()
 
@@ -523,16 +524,24 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
         instance_metadata = self.metadata_cache.get(instance_type)
 
         if not instance_metadata:
-            logger.warning(f"No metadata for group-id: {group_id}")
+            logger.warning(f"TemplateNodeInfo({group_id}): no metadata for {instance_type}")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(
-                f"Group-id metadata not available: {config.instance_type}"
-            )
+            context.set_details(f"Group-id metadata not available: {config.instance_type}")
             return NodeGroupTemplateNodeInfoResponse()
 
-        node = self.template_service.build(group_id, config, instance_metadata)
-
-        return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
+        try:
+            node = self.template_service.build(group_id, config, instance_metadata)
+            logger.debug(
+                f"TemplateNodeInfo({group_id}): labels={dict(node.metadata.labels)}, "
+                f"capacity keys={list(node.status.capacity.keys())}, "
+                f"allocatable keys={list(node.status.allocatable.keys())}"
+            )
+            return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
+        except Exception:
+            logger.exception(f"TemplateNodeInfo({group_id}): build() failed")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"Failed to build template for {group_id}")
+            return NodeGroupTemplateNodeInfoResponse()
 
     @override
     def NodeGroupGetOptions(
