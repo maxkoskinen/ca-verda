@@ -25,8 +25,9 @@ data:
         endpoint: "control01.k3s.aalto.fi:6443"
     ssh_key_ids:
       - "15629643-9ac2-4893-b7db-e5a2efd700cd"
-    contract: "SPOT"
+    contract: "PAY_AS_YOU_GO"
     pricing: "FIXED_PRICE"
+    os_volume_gb: 200
     labels:
       verda.com/gpu: "true"
       node.kubernetes.io/role: "cloud-worker"
@@ -79,6 +80,40 @@ data:
           - "FIN-02"
           - "FIN-03"
         hourly_price: 4.8
+
+      # L40S
+      1L40S-20V:
+        instance_type: "1L40S.20V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+
+      2L40S-40V:
+        instance_type: "2L40S.40V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+
+      4L40S-80V:
+        instance_type: "4L40S.80V"
+        image: "ubuntu-24.04-cuda-12.6-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
 
       # ── RTX A6000 48GB ────────────────────────────────────────────────────
       1A6000-10V:

@@ -4,9 +4,9 @@ set -e
 # --- Configuration ---
 
 # --- Version Configuration ---
-K8S_VERSION="1.30.0"
+K8S_VERSION="1.35.3"
 # Autoscaler uses same minor version as k8s
-CA_VERSION="1.30.0"
+CA_VERSION="1.35.0"
 
 # Derived tags (do not edit)
 K8S_TAG="kubernetes-${K8S_VERSION}"
