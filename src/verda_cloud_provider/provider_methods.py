@@ -6,11 +6,12 @@ from datetime import UTC, datetime
 from typing import Any, override
 
 import grpc
+from google.protobuf.timestamp_pb2 import Timestamp
 from grpc import ServicerContext
 from verda import VerdaClient
 from verda.constants import Actions
 from verda.constants import InstanceStatus as VerdaInstanceStatus
-from verda.instances import Contract, OSVolume
+from verda.instances import OSVolume
 
 from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
     CleanupRequest,
@@ -50,7 +51,6 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2 import (
 from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc import (
     CloudProviderServicer,
 )
-from k8s.io.apimachinery.pkg.apis.meta.v1 import generated_pb2 as meta_v1
 from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
 from verda_cloud_provider.services.instance_metadata_service import (
     InstanceMetadataCache,
@@ -83,7 +83,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
     wg_service: WireguardService | None
     node_cleanup_service: NodeCleanupService
 
-    def _duration_hours(self, start: meta_v1.Time, end: meta_v1.Time) -> float:
+    def _duration_hours(self, start: Timestamp, end: Timestamp) -> float:
         start_s = start.seconds + start.nanos / 1e9
         end_s = end.seconds + end.nanos / 1e9
         return max(0.0, (end_s - start_s) / 3600.0)
@@ -503,7 +503,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
         if hourly_price is None:
             hourly_price = cfg.hourly_price
 
-        hours = self._duration_hours(request.startTime, request.endTime)
+        hours = self._duration_hours(request.startTimestamp, request.endTimestamp)
         return PricingNodePriceResponse(price=cfg.hourly_price * hours)
 
     @override
@@ -536,7 +536,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
                 f"capacity={{{', '.join(f'{k}: {v.string}' for k, v in node.status.capacity.items())}}}, "
                 f"allocatable={{{', '.join(f'{k}: {v.string}' for k, v in node.status.allocatable.items())}}}"
             )
-            return NodeGroupTemplateNodeInfoResponse(nodeInfo=node)
+            return NodeGroupTemplateNodeInfoResponse(nodeBytes=node.SerializeToString())
         except Exception:
             logger.exception(f"TemplateNodeInfo({group_id}): build() failed")
             context.set_code(grpc.StatusCode.INTERNAL)
