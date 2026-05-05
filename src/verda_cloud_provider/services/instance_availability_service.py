@@ -1,6 +1,5 @@
 import logging
 from threading import RLock
-from typing import Dict
 
 from verda import VerdaClient
 
@@ -16,15 +15,22 @@ class InstanceAvailabilityCache:
     Cache for instance type availability from Verda API.
     Updated via explicit refresh() calls during the Refresh() loop.
 
-    The Verda API returns a list of dicts from get_availabilities().
-    We parse these into a lookup keyed by (instance_type, location) -> bool.
+    The Verda API returns a list of dicts shaped like::
+
+        [
+            {"location_code": "FIN-01", "availabilities": []},
+            {"location_code": "FIN-02", "availabilities": ["1H200.141S.44V", "CPU.4V.16G", ...]},
+        ]
+
+    We flatten these into a set of (instance_type, location) tuples
+    representing the available combinations.
     """
 
     def __init__(self, client: VerdaClient):
         self.client = client
         self._lock = RLock()
-        # Maps (instance_type, location) -> True if available
-        self._cache: Dict[AvailabilityKey, bool] = {}
+        # Set of (instance_type, location) pairs that are currently available
+        self._available: set[AvailabilityKey] = set()
         # Track whether we've ever successfully loaded data
         self._loaded: bool = False
 
@@ -39,7 +45,7 @@ class InstanceAvailabilityCache:
         with self._lock:
             if not self._loaded:
                 return True  # fail-open
-            return self._cache.get((instance_type, location), False)
+            return (instance_type, location) in self._available
 
     def refresh(self) -> None:
         """
@@ -49,24 +55,19 @@ class InstanceAvailabilityCache:
         try:
             raw_availabilities = self.client.instances.get_availabilities()
 
-            new_cache: Dict[AvailabilityKey, bool] = {}
+            new_available: set[AvailabilityKey] = set()
             for entry in raw_availabilities:
-                instance_type = entry.get("instance_type")
-                location = entry.get("location_code") or entry.get("location")
-                available = entry.get("available", False)
-
-                if instance_type and location:
-                    new_cache[(instance_type, location)] = bool(available)
+                location = entry.get("location_code", "")
+                for instance_type in entry.get("availabilities", []):
+                    new_available.add((instance_type, location))
 
             with self._lock:
-                self._cache = new_cache
+                self._available = new_available
                 self._loaded = True
 
-            available_count = sum(1 for v in new_cache.values() if v)
             logger.info(
-                "Refreshed availability for %d instance-type/location pairs (%d available)",
-                len(new_cache),
-                available_count,
+                "Refreshed availability: %d instance-type/location pairs available",
+                len(new_available),
             )
 
         except Exception as e:
