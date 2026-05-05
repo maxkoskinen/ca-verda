@@ -6,6 +6,7 @@ from pathlib import Path
 from verda import VerdaClient
 
 from verda_cloud_provider.services import (
+    InstanceAvailabilityCache,
     InstanceMetadataCache,
     NodeCleanupService,
     NodeTemplateService,
@@ -29,6 +30,7 @@ class ProviderServices:
     state_store: InstanceStateStore
     template_service: NodeTemplateService
     metadata_cache: InstanceMetadataCache
+    availability_cache: InstanceAvailabilityCache
     startup_script_service: StartupScriptService
     wg_service: WireguardService | None
     node_cleanup_service: NodeCleanupService
@@ -89,6 +91,7 @@ def build_provider_services(app_config: AppConfig) -> ProviderServices:
 
     configured_types = {cfg.instance_type for cfg in node_groups_config.values()}
     metadata_cache = InstanceMetadataCache(client, configured_types)
+    availability_cache = InstanceAvailabilityCache(client)
 
     startup_script_template_path = _resolve_startup_script_template(app_config)
     startup_script_service = StartupScriptService(
@@ -110,6 +113,7 @@ def build_provider_services(app_config: AppConfig) -> ProviderServices:
         state_store=state_store,
         template_service=template_service,
         metadata_cache=metadata_cache,
+        availability_cache=availability_cache,
         startup_script_service=startup_script_service,
         wg_service=wg_service,
         node_cleanup_service=node_cleanup_service,

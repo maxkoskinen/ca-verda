@@ -22,6 +22,10 @@ spec:
                     operator: NotIn
                     values:
                       - cloud-worker
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - control01.k3s.aalto.fi
       tolerations:
         - key: CriticalAddonsOnly
           operator: Exists
