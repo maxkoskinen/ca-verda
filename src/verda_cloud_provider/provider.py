@@ -17,6 +17,7 @@ class VerdaCloudProvider(VerdaCloudProviderMethodsMixin):
         self.state_store = services.state_store
         self.template_service = services.template_service
         self.metadata_cache = services.metadata_cache
+        self.availability_cache = services.availability_cache
         self.startup_script_service = services.startup_script_service
         self.wg_service = services.wg_service
         self.node_cleanup_service = services.node_cleanup_service
@@ -32,8 +33,9 @@ class VerdaCloudProvider(VerdaCloudProviderMethodsMixin):
             instances = self.client.instances.get()
             # Sync state store with API
             self.state_store.sync_with_api(instances, self.node_groups_config)
-            # Refresh metadata
+            # Refresh metadata and availability
             self.metadata_cache.refresh()
+            self.availability_cache.refresh()
 
         except Exception as e:
             logger.error(f"Failed to initialize: {e}")

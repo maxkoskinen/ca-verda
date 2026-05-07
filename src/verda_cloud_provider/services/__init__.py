@@ -1,3 +1,6 @@
+from verda_cloud_provider.services.instance_availability_service import (
+    InstanceAvailabilityCache,
+)
 from verda_cloud_provider.services.instance_metadata_service import (
     InstanceMetadataCache,
     InstanceTypeMetadata,
@@ -11,6 +14,7 @@ from verda_cloud_provider.services.wg_service import (
 )
 
 __all__ = [
+    "InstanceAvailabilityCache",
     "InstanceMetadataCache",
     "InstanceTypeMetadata",
     "NodeCleanupService",

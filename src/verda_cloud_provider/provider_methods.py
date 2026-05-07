@@ -52,6 +52,9 @@ from clusterautoscaler.cloudprovider.v1.externalgrpc.externalgrpc_pb2_grpc impor
     CloudProviderServicer,
 )
 from verda_cloud_provider.gpu_types import GPU_LABEL, gpu_type_for_model
+from verda_cloud_provider.services.instance_availability_service import (
+    InstanceAvailabilityCache,
+)
 from verda_cloud_provider.services.instance_metadata_service import (
     InstanceMetadataCache,
 )
@@ -78,6 +81,7 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
     node_groups_config: dict[str, NodeGroupConfig]
     state_store: InstanceStateStore
     metadata_cache: InstanceMetadataCache
+    availability_cache: InstanceAvailabilityCache
     template_service: NodeTemplateService
     startup_script_service: StartupScriptService
     wg_service: WireguardService | None
@@ -108,15 +112,31 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
     def NodeGroups(
         self, request: NodeGroupsRequest, context: ServicerContext
     ) -> NodeGroupsResponse:
-        """Return list of configured node groups."""
+        """Return list of configured node groups.
+
+        If the Verda availability API reports that an instance type is
+        unavailable at the configured location, we advertise maxSize=0
+        so the cluster autoscaler will not attempt to scale up that group.
+        """
 
         groups: list[NodeGroup] = []
         for name, config in self.node_groups_config.items():
+            available = self.availability_cache.is_available(
+                config.instance_type, config.location,
+            )
+            effective_max = config.max_size if available else 0
+
+            if not available:
+                logger.debug(
+                    "NodeGroups: %s (%s @ %s) marked unavailable — maxSize=0",
+                    name, config.instance_type, config.location,
+                )
+
             groups.append(
                 NodeGroup(
                     id=name,
                     minSize=config.min_size,
-                    maxSize=config.max_size,
+                    maxSize=effective_max,
                     debug=f"Verda Group {config.instance_type}",
                 )
             )
@@ -187,6 +207,18 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
             return NodeGroupIncreaseSizeResponse()
 
         config = self.node_groups_config[group_id]
+
+        # Safety net: reject scale-up if the instance type is unavailable
+        if not self.availability_cache.is_available(config.instance_type, config.location):
+            logger.warning(
+                "IncreaseSize(%s): instance type %s unavailable at %s — rejecting",
+                group_id, config.instance_type, config.location,
+            )
+            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            context.set_details(
+                f"Instance type {config.instance_type} is currently unavailable at {config.location}"
+            )
+            return NodeGroupIncreaseSizeResponse()
         current_target = len(self.state_store.get_by_group(group_id))
         new_target = current_target + delta
 
@@ -454,8 +486,9 @@ class VerdaCloudProviderMethodsMixin(CloudProviderServicer):
             # Reconcile state store
             self.state_store.sync_with_api(instances, self.node_groups_config)
 
-            # Get metadata for instances
+            # Get metadata and availability for instances
             self.metadata_cache.refresh()
+            self.availability_cache.refresh()
 
             logger.debug("Refresh completed successfully")
 
