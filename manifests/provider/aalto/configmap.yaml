@@ -36,6 +36,361 @@ data:
       node-role.kubernetes.io/cloud: true:NoSchedule
 
     node_groups:
+      # MIG GROUPS
+      1H200-141S-44V-mig:
+        instance_type: "1H200.141S.44V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+        labels:
+          nvidia.com/mig.config: "all-1g.18gb"
+        override_resources:
+          nvidia.com/gpu: "7"
+
+      2H200-141S-88V-mig:
+        instance_type: "2H200.141S.88V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.2
+        labels:
+          nvidia.com/mig.config: "all-1g.18gb"
+        override_resources:
+          nvidia.com/gpu: "14"
+
+      4H200-141S-176V-mig:
+        instance_type: "4H200.141S.176V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 2.4
+        labels:
+          nvidia.com/mig.config: "all-1g.18gb"
+        override_resources:
+          nvidia.com/gpu: "28"
+
+      8H200-141S-176V-mig:
+        instance_type: "8H200.141S.176V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 4.8
+        labels:
+          nvidia.com/mig.config: "all-1g.18gb"
+        override_resources:
+          nvidia.com/gpu: "56"
+
+      1H100-80S-30V-mig:
+        instance_type: "1H100.80S.30V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "7"
+
+      2H100-80S-80V-mig:
+        instance_type: "2H100.80S.80V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.2
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "14"
+
+      4H100-80S-176V-mig:
+        instance_type: "4H100.80S.176V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 2.4
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "28"
+
+      8H100-80S-176V-mig:
+        instance_type: "8H100.80S.176V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 4.8
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "56"
+
+      1A100-22V-mig:
+        instance_type: "1A100.22V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "4"
+
+      2A100-44V-mig:
+        instance_type: "2A100.44V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.2
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "8"
+
+      4A100-88V-mig:
+        instance_type: "4A100.88V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 2.4
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "16"
+
+      8A100-176V-mig:
+        instance_type: "8A100.176V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 4.8
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "32"
+
+      1A100-40S-22V-mig:
+        instance_type: "1A100.40S.22V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "4"
+
+      8A100-40S-176V-mig:
+        instance_type: "8A100.40S.176V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 4.8
+        labels:
+          nvidia.com/mig.config: "all-1g.10gb"
+        override_resources:
+          nvidia.com/gpu: "32"
+
+      1RTXPRO6000-30V-mig:
+        instance_type: "1RTXPRO6000.30V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.8262
+        labels:
+          nvidia.com/mig.config: "all-1g.24gb"
+        override_resources:
+          nvidia.com/gpu: "4"
+
+      2RTXPRO6000-60V-mig:
+        instance_type: "2RTXPRO6000.60V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.6524
+        labels:
+          nvidia.com/mig.config: "all-1g.24gb"
+        override_resources:
+          nvidia.com/gpu: "8"
+
+      4RTXPRO6000-120V-mig:
+        instance_type: "4RTXPRO6000.120V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 3.3048
+        labels:
+          nvidia.com/mig.config: "all-1g.24gb"
+        override_resources:
+          nvidia.com/gpu: "16"
+
+      8RTXPRO6000-240V-mig:
+        instance_type: "8RTXPRO6000.240V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 6.6096
+        labels:
+          nvidia.com/mig.config: "all-1g.24gb"
+        override_resources:
+          nvidia.com/gpu: "32"
+
+      1B200-30V-mig:
+        instance_type: "1B200.30V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+        labels:
+          nvidia.com/mig.config: "all-1g.23gb"
+        override_resources:
+          nvidia.com/gpu: "7"
+
+      2B200-60V-mig:
+        instance_type: "2B200.60V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+        labels:
+          nvidia.com/mig.config: "all-1g.23gb"
+        override_resources:
+          nvidia.com/gpu: "14"
+
+      4B200-120V-mig:
+        instance_type: "4B200.120V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+        labels:
+          nvidia.com/mig.config: "all-1g.23gb"
+        override_resources:
+          nvidia.com/gpu: "28"
+
+      8B200-240V-mig:
+        instance_type: "8B200.240V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+        labels:
+          nvidia.com/mig.config: "all-1g.23gb"
+        override_resources:
+          nvidia.com/gpu: "56"
+
+      # A100 100
+      1A100-40S-22V:
+        instance_type: "1A100.40S.22V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+
+      8A100-40S-176V:
+        instance_type: "8A100.40S.176V"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 0.6
+
+
       # ── Tesla V100 16GB ───────────────────────────────────────────────────
       1V100-6V:
         instance_type: "1V100.6V"
@@ -84,7 +439,7 @@ data:
       # L40S
       1L40S-20V:
         instance_type: "1L40S.20V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -95,7 +450,7 @@ data:
 
       2L40S-40V:
         instance_type: "2L40S.40V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -106,7 +461,7 @@ data:
 
       4L40S-80V:
         instance_type: "4L40S.80V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -163,7 +518,7 @@ data:
       # ── CPU Node ──────────────────────────────────────────────────────────
       CPU-4V-16G:
         instance_type: "CPU.4V.16G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -176,7 +531,7 @@ data:
 
       CPU-8V-32G:
         instance_type: "CPU.8V.32G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -189,7 +544,7 @@ data:
 
       CPU-16V-64G:
         instance_type: "CPU.16V.64G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -202,7 +557,7 @@ data:
 
       CPU-32V-128G:
         instance_type: "CPU.32V.128G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -215,7 +570,7 @@ data:
 
       CPU-64V-256G:
         instance_type: "CPU.64V.256G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -228,7 +583,7 @@ data:
 
       CPU-96V-384G:
         instance_type: "CPU.96V.384G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -241,7 +596,7 @@ data:
 
       CPU-120V-480G:
         instance_type: "CPU.120V.480G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -254,7 +609,7 @@ data:
 
       CPU-180V-720G:
         instance_type: "CPU.180V.720G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -267,7 +622,7 @@ data:
 
       CPU-360V-1440G:
         instance_type: "CPU.360V.1440G"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -278,10 +633,10 @@ data:
         labels:
           verda.com/gpu: "false"
 
-      # ── RTX 6000 Ada 48GB ────────────────────────────────────────────────
+      # ── RTX 6000 Ada 48GB ────────────────────────────────────────────────────
       1RTX6000ADA-10V:
         instance_type: "1RTX6000ADA.10V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -292,7 +647,7 @@ data:
 
       2RTX6000ADA-20V:
         instance_type: "2RTX6000ADA.20V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -303,7 +658,7 @@ data:
 
       4RTX6000ADA-40V:
         instance_type: "4RTX6000ADA.40V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -314,7 +669,7 @@ data:
 
       8RTX6000ADA-80V:
         instance_type: "8RTX6000ADA.80V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -323,10 +678,10 @@ data:
           - "FIN-03"
         hourly_price: 6.6096
 
-      # ── A100 SXM4 80GB ───────────────────────────────────────────────────
+      # ── A100 SXM4 80GB ─────────────────────────────────────────────────────
       1A100-22V:
         instance_type: "1A100.22V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -337,7 +692,7 @@ data:
 
       2A100-44V:
         instance_type: "2A100.44V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -348,7 +703,7 @@ data:
 
       4A100-88V:
         instance_type: "4A100.88V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -359,7 +714,7 @@ data:
 
       8A100-176V:
         instance_type: "8A100.176V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -368,10 +723,10 @@ data:
           - "FIN-03"
         hourly_price: 6.6096
 
-      # ── H100 SXM5 80GB ───────────────────────────────────────────────────
+      # ── H100 SXM5 80GB ─────────────────────────────────────────────────────
       1H100-80S-30V:
         instance_type: "1H100.80S.30V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -382,7 +737,7 @@ data:
 
       2H100-80S-80V:
         instance_type: "2H100.80S.80V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -393,7 +748,7 @@ data:
 
       4H100-80S-176V:
         instance_type: "4H100.80S.176V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -404,7 +759,7 @@ data:
 
       8H100-80S-176V:
         instance_type: "8H100.80S.176V"
-        image: "ubuntu-24.04-cuda-12.6-docker"
+        image: "ubuntu-24.04-cuda-12.8-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -413,10 +768,10 @@ data:
           - "FIN-03"
         hourly_price: 6.6096
 
-      # ── RTX PRO 6000 96GB ────────────────────────────────────────────────
+      # ── RTX PRO 6000 96GB ────────────────────────────────────────────────────
       1RTXPRO6000-30V:
         instance_type: "1RTXPRO6000.30V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -427,7 +782,7 @@ data:
 
       2RTXPRO6000-60V:
         instance_type: "2RTXPRO6000.60V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -438,7 +793,7 @@ data:
 
       4RTXPRO6000-120V:
         instance_type: "4RTXPRO6000.120V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -449,7 +804,7 @@ data:
 
       8RTXPRO6000-240V:
         instance_type: "8RTXPRO6000.240V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -458,10 +813,10 @@ data:
           - "FIN-03"
         hourly_price: 6.6096
 
-      # ── B200  ────────────────────────────────────────────────
+      # ── B200  ────────────────────────────────────────────────────────
       1B200-30V:
         instance_type: "1B200.30V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -472,7 +827,7 @@ data:
 
       2B200-60V:
         instance_type: "2B200.60V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -483,7 +838,7 @@ data:
 
       4B200-120V:
         instance_type: "4B200.120V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
@@ -494,7 +849,52 @@ data:
 
       8B200-240V:
         instance_type: "8B200.240V"
-        image: "ubuntu-22.04-cuda-12.8-open-docker"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      # ── B300 SXM6 262GB ──────────────────────────────────────────────────
+      1B300-30V:
+        instance_type: "1B300.30V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      2B300-60V:
+        instance_type: "2B300.60V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      4B300-120V:
+        instance_type: "4B300.120V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
+        min_size: 0
+        max_size: 10
+        locations:
+          - "FIN-01"
+          - "FIN-02"
+          - "FIN-03"
+        hourly_price: 1.400
+
+      8B300-240V:
+        instance_type: "8B300.240V"
+        image: "ubuntu-24.04-cuda-13.0-open-docker"
         min_size: 0
         max_size: 10
         locations:
