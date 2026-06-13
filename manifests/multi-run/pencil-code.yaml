@@ -1,0 +1,79 @@
+##
+## Pencil Code MHD simulation — conv-slab sample configuration
+##
+## Models convective transport in a slab geometry using the Pencil Code,
+## a high-order finite-difference MHD framework.
+##
+## Uses the containerized Pencil Code from
+## ghcr.io/maxkoskinen/pencil-code-docker.
+##
+## SYS_PTRACE capability enables fast MPI shared-memory transport
+## (CMA / cross-memory attach between ranks in the same pod).
+##
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pencil-code-conv-slab
+  namespace: test
+  labels:
+    app: pencil-code
+    type: benchmark
+    purpose: thesis-evaluation
+    run-type: multi-run
+    simulation: conv-slab
+spec:
+  completions: 12
+  parallelism: 2
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: pencil-code
+        type: benchmark
+        purpose: thesis-evaluation
+        run-type: multi-run
+        simulation: conv-slab
+    spec:
+      restartPolicy: OnFailure
+
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "2A100.44V"
+
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
+      containers:
+        - name: pencil-sim
+          image: ghcr.io/maxkoskinen/pencil-code-docker:latest
+          imagePullPolicy: Always
+          args: ["conv-slab"]
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
+          volumeMounts:
+            - name: dshm
+              mountPath: /dev/shm
+            - name: sim-output
+              mountPath: /simulation/data
+
+      volumes:
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: sim-output
+          emptyDir:
+            sizeLimit: 2Gi

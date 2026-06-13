@@ -1,0 +1,65 @@
+##
+## N-Body GPU Benchmark — CUDA gravitational simulation
+##
+## Uses the NVIDIA CUDA nbody sample to stress-test GPU compute
+## with a large particle count and extended iteration run.
+##
+## Default nbody is 256K bodies / 10 iterations — this config
+## uses 1M bodies / 100 iterations for a heavier workload that
+## better saturates modern GPUs.
+##
+## Runs 2 pods in parallel (completions: 2, parallelism: 2)
+## so two instances are scheduled when applied.
+##
+## Expected runtime: ~5-20 min depending on GPU model.
+##
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nbody-gpu-benchmark
+  namespace: test
+  labels:
+    app: nbody
+    type: benchmark
+    purpose: thesis-evaluation
+    run-type: multi-run
+spec:
+  completions: 12
+  parallelism: 2
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: nbody
+        type: benchmark
+        purpose: thesis-evaluation
+        run-type: multi-run
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "2A100.44V"
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+      - name: cuda-container
+        image: nvcr.io/nvidia/k8s/cuda-sample:nbody
+        args: ["nbody", "-gpu", "-benchmark", "-numbodies=1048576", "-iterations=1000"]
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+            nvidia.com/gpu: 1
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: all

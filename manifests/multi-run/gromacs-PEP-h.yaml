@@ -1,0 +1,194 @@
+##
+## GROMACS benchPEP-h — Maximum performance benchmark
+##
+## Source: https://www.mpinat.mpg.de/grubmueller/bench
+## benchPEP-h: 12M atoms, peptides in water, 2 fs, h-bonds constrained
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gromacs-benchpep-h
+  namespace: test
+  labels:
+    app: gromacs
+    type: benchmark
+    purpose: thesis-evaluation
+    run-type: multi-run
+    benchmark: benchPEP-h
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: gromacs
+        type: benchmark
+        run-type: multi-run
+        benchmark: benchPEP-h
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: ngc-secret
+
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "2A100.44V"
+
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
+      initContainers:
+        - name: download-benchmark
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "=== Downloading benchPEP-h from MPI-NAT ==="
+              echo "Source: https://www.mpinat.mpg.de/grubmueller/bench"
+              curl -fsSL \
+                "https://www.mpinat.mpg.de/benchPEP-h" \
+                -o /data/benchPEP-h.zip
+
+              echo "Extracting archive..."
+              cd /data && unzip -o benchPEP-h.zip
+
+              echo "Locating .tpr file..."
+              TPR=$(find /data -name "*.tpr" -type f | head -1)
+              if [ -z "$TPR" ]; then
+                echo "ERROR: No .tpr file found after extraction"
+                ls -laR /data/
+                exit 1
+              fi
+
+              [ "$TPR" != "/data/benchPEP-h.tpr" ] && cp "$TPR" /data/benchPEP-h.tpr
+              echo "Input ready: $(ls -lh /data/benchPEP-h.tpr)"
+              echo "Source: $TPR"
+          volumeMounts:
+            - name: workdir
+              mountPath: /data
+
+      containers:
+        - name: gromacs
+          image: nvcr.io/hpc/gromacs:2023.2
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "============================================================"
+              echo "  GROMACS GPU Benchmark — benchPEP-h (12M atoms)"
+              echo "  Peptides in water, 2 fs time step, h-bonds constrained"
+              echo "  Fully GPU-resident mode (max performance)"
+              echo "  Source: https://www.mpinat.mpg.de/grubmueller/bench"
+              echo "============================================================"
+              echo "Node:  ${NODE_NAME}"
+              echo "Date:  $(date -u)"
+              echo ""
+
+              # ── GPU information ──
+              echo "--- GPU Info ---"
+              nvidia-smi --query-gpu=index,name,memory.total,memory.free,driver_version,power.limit \
+                --format=csv,noheader 2>/dev/null || \
+              nvidia-smi --query-gpu=index,name,memory.total,driver_version \
+                --format=csv,noheader
+              echo ""
+
+              # ── Locate gmx binary ──
+              GMX_BIN=$(find /usr/local/gromacs -name "gmx" -type f 2>/dev/null | head -1)
+              if [ -z "$GMX_BIN" ]; then
+                echo "ERROR: gmx binary not found"
+                exit 1
+              fi
+              export PATH="$(dirname $GMX_BIN):$PATH"
+              echo "GROMACS: $(gmx --version 2>&1 | head -1)"
+              echo ""
+
+              OMP_THREADS=6
+
+              echo "============================================================"
+              echo "  Starting GROMACS mdrun (fully GPU-resident)"
+              echo "  System:    benchPEP-h (12M atoms, peptides in water)"
+              echo "  Mode:      -nb gpu -pme gpu -bonded gpu -update gpu"
+              echo "  Wall-clock limit: 15 min (-maxh 0.25)"
+              echo "  Threading: -ntmpi 1  -ntomp ${OMP_THREADS}"
+              echo "============================================================"
+              echo ""
+
+              gmx mdrun \
+                -s /data/benchPEP-h.tpr \
+                -nsteps -1 \
+                -maxh 0.25 \
+                -ntmpi 1 \
+                -ntomp ${OMP_THREADS} \
+                -gpu_id 0 \
+                -nb gpu \
+                -pme gpu \
+                -bonded gpu \
+                -update gpu \
+                -noconfout \
+                -nstlist 200 \
+                -tunepme no \
+                -resetstep 5000 \
+                -pin on \
+                -pinstride 1 \
+                -v \
+              || {
+                echo ""
+                echo "WARNING: -pin on failed, retrying without pinning"
+                echo ""
+                gmx mdrun \
+                  -s /data/benchPEP-h.tpr \
+                  -nsteps -1 \
+                  -maxh 0.25 \
+                  -ntmpi 1 \
+                  -ntomp ${OMP_THREADS} \
+                  -gpu_id 0 \
+                  -nb gpu \
+                  -pme gpu \
+                  -bonded gpu \
+                  -update gpu \
+                  -noconfout \
+                  -nstlist 200 \
+                  -tunepme no \
+                  -resetstep 5000 \
+                  -pin off \
+                  -v
+              }
+
+              echo ""
+              echo "============================================================"
+              echo "  Benchmark complete"
+              echo "============================================================"
+              echo "Look for 'Performance:' line above for ns/day result."
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: GMX_FORCE_UPDATE_DEFAULT_GPU
+              value: "1"
+          resources:
+            requests:
+              cpu: "6"
+              memory: "8Gi"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "6"
+              memory: "8Gi"
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: workdir
+              mountPath: /data
+
+      volumes:
+        - name: workdir
+          emptyDir:
+            sizeLimit: 1Gi

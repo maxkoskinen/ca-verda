@@ -1,0 +1,53 @@
+##
+## N-Body GPU Benchmark — CUDA gravitational simulation
+##
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nbody-gpu-benchmark
+  namespace: test
+  labels:
+    app: nbody
+    purpose: thesis-evaluation
+    run-type: single-run
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 1800
+  template:
+    metadata:
+      labels:
+        app: nbody
+        type: benchmark
+        purpose: thesis-evaluation
+        run-type: single-run
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "1A100.40S.22V"
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+      - name: cuda-container
+        image: nvcr.io/nvidia/k8s/cuda-sample:nbody
+        args: ["nbody", "-gpu", "-benchmark"]
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+            nvidia.com/gpu: 1
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: all

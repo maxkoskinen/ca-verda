@@ -1,0 +1,198 @@
+##
+## GROMACS benchMEM — GPU benchmark manifest (MIG-friendly)
+##
+## Source: https://www.mpinat.mpg.de/grubmueller/bench
+##
+## benchMEM: 82k atoms, protein in membrane surrounded by water, 2 fs time step
+##
+## Key difference from benchPEP-h:
+##   benchMEM uses constraints=all-bonds, so -update gpu is NOT possible.
+##   The integration/update step runs on the CPU while nb, pme, and
+##   bonded forces run on the GPU. This means CPU core count matters
+##   more than with benchPEP-h.
+##
+## Memory footprint is ~200-500 MB GPU RAM — fits easily on any MIG
+## slice including 1g.5gb (A100) or 1g.18gb (H200).
+##
+## Expected performance (single GPU, rough estimates):
+##   Full H200:          ~250-400 ns/day
+##   Full H100:          ~200-350 ns/day
+##   Full A100:          ~130-270 ns/day
+##   H200 MIG 1g.18gb:  ~30-60 ns/day
+##   H200 MIG 3g.71gb:  ~100-180 ns/day
+##
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gromacs-benchmem
+  namespace: test
+  labels:
+    app: gromacs
+    type: benchmark
+    purpose: thesis-evaluation
+    run-type: multi-run
+    benchmark: benchMEM
+spec:
+  completions: 2
+  parallelism: 2
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: gromacs
+        type: benchmark
+        run-type: multi-run
+        benchmark: benchMEM
+    spec:
+      restartPolicy: OnFailure
+      imagePullSecrets:
+        - name: ngc-secret
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "2A100.44V"
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
+      initContainers:
+        - name: download-benchmark
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "=== Downloading benchMEM from MPI-NAT ==="
+              echo "Source: https://www.mpinat.mpg.de/grubmueller/bench"
+              curl -fsSL \
+                "https://www.mpinat.mpg.de/benchMEM" \
+                -o /data/benchMEM.zip
+
+              echo "Extracting archive..."
+              cd /data && unzip -o benchMEM.zip
+
+              echo "Locating .tpr file..."
+              TPR=$(find /data -name "*.tpr" -type f | head -1)
+              if [ -z "$TPR" ]; then
+                echo "ERROR: No .tpr file found after extraction"
+                ls -laR /data/
+                exit 1
+              fi
+
+              [ "$TPR" != "/data/benchMEM.tpr" ] && cp "$TPR" /data/benchMEM.tpr
+              echo "Input ready: $(ls -lh /data/benchMEM.tpr)"
+              echo "Source: $TPR"
+          volumeMounts:
+            - name: workdir
+              mountPath: /data
+
+      containers:
+        - name: gromacs
+          image: nvcr.io/hpc/gromacs:2023.2
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "============================================================"
+              echo "  GROMACS GPU Benchmark — benchMEM (82k atoms)"
+              echo "  Protein in membrane surrounded by water, 2 fs time step"
+              echo "  Source: https://www.mpinat.mpg.de/grubmueller/bench"
+              echo "============================================================"
+              echo "Node:  ${NODE_NAME}"
+              echo "Date:  $(date -u)"
+              echo ""
+
+              # ── Locate gmx binary ──
+              GMX_BIN=$(find /usr/local/gromacs -name "gmx" -type f 2>/dev/null | head -1)
+              if [ -z "$GMX_BIN" ]; then
+                echo "ERROR: gmx binary not found"
+                exit 1
+              fi
+              export PATH="$(dirname $GMX_BIN):$PATH"
+              echo "GROMACS: $(gmx --version 2>&1 | head -1)"
+              echo ""
+
+              OMP_THREADS=6
+
+              # ── Note on constraints ──
+              # benchMEM uses constraints=all-bonds → -update gpu NOT possible
+              # nb, pme, bonded → GPU; update/integration → CPU
+              echo "============================================================"
+              echo "  Starting GROMACS mdrun"
+              echo "  System:  benchMEM (82k atoms, membrane protein)"
+              echo "  Mode:    -nb gpu -pme gpu -bonded gpu (update on CPU)"
+              echo "  Wall-clock limit: 15 min (-maxh 0.25)"
+              echo "  -ntmpi 1  -ntomp ${OMP_THREADS}  -gpu_id 0"
+              echo "============================================================"
+              echo ""
+
+              gmx mdrun \
+                -s /data/benchMEM.tpr \
+                -nsteps -1 \
+                -maxh 0.25 \
+                -ntmpi 1 \
+                -ntomp ${OMP_THREADS} \
+                -gpu_id 0 \
+                -nb gpu \
+                -pme gpu \
+                -bonded gpu \
+                -noconfout \
+                -nstlist 200 \
+                -tunepme no \
+                -resetstep 5000 \
+                -pin on \
+                -v \
+              || {
+                echo ""
+                echo "WARNING: mdrun with -pin on failed, retrying with -pin off"
+                echo ""
+                gmx mdrun \
+                  -s /data/benchMEM.tpr \
+                  -nsteps -1 \
+                  -maxh 0.25 \
+                  -ntmpi 1 \
+                  -ntomp ${OMP_THREADS} \
+                  -gpu_id 0 \
+                  -nb gpu \
+                  -pme gpu \
+                  -bonded gpu \
+                  -noconfout \
+                  -nstlist 200 \
+                  -tunepme no \
+                  -resetstep 5000 \
+                  -pin off \
+                  -v
+              }
+
+              echo ""
+              echo "============================================================"
+              echo "  Benchmark complete"
+              echo "============================================================"
+              echo "Check the log output above for 'Performance:' line (ns/day)."
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: "6"
+              memory: "4Gi"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "6"
+              memory: "8Gi"
+              nvidia.com/gpu: 1
+          volumeMounts:
+            - name: workdir
+              mountPath: /data
+
+      volumes:
+        - name: workdir
+          emptyDir:
+            sizeLimit: 256Mi

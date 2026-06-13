@@ -1,0 +1,377 @@
+##
+## GPU-Agnostic ML Training Benchmark — Two-Phase GPU Stress
+##
+## This benchmark auto-detects GPU VRAM at runtime and selects appropriate
+## batch sizes for any single-GPU Verda instance from V100 (16 GB) to
+## B200 (192 GB). No instance-type nodeSelector is needed.
+##
+## Batch Sizes (universal — fits ≤16 GB GPUs):
+##   ResNet-152 = 64,  ViT-L/16 = 8
+##   torch.compile mode = default (no CUDA graphs)
+##
+## Phases:
+##   1. ResNet-152  — conv-heavy, channels_last, SGD, 500 steps
+##   2. ViT-L/16   — attention-heavy, AdamW, 300 steps
+##
+## Both phases use ImageNet-scale synthetic data (224×224, 1000 classes)
+## so the benchmark isolates raw GPU compute from storage/network I/O.
+## Mixed-precision (AMP FP16) + torch.compile(reduce-overhead) throughout.
+##
+## Expected runtime: ~10-40 min depending on GPU model and batch size.
+##
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ml-training
+  namespace: test
+  labels:
+    app: ml-training
+    type: benchmark
+    purpose: thesis-evaluation
+    run-type: multi-run
+spec:
+  completions: 4
+  parallelism: 3
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 7200
+  template:
+    metadata:
+      labels:
+        app: ml-training
+        type: benchmark
+        purpose: thesis-evaluation
+        run-type: multi-run
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        topology.kubernetes.io/zone: verda
+        verda.com/instance-type: "2A100.44V"
+      tolerations:
+        - key: "node-role.kubernetes.io/cloud"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      imagePullSecrets:
+        - name: ngc-secret
+      containers:
+      - name: pytorch-trainer
+        image: nvcr.io/nvidia/pytorch:25.04-py3
+        resources:
+          requests:
+            cpu: "4"
+            memory: "8Gi"
+            nvidia.com/gpu: 1
+          limits:
+            cpu: "5"
+            nvidia.com/gpu: 1
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+        - name: NVIDIA_DRIVER_CAPABILITIES
+          value: all
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        command:
+          - python3
+          - -c
+          - |
+            """
+            GPU-Agnostic Two-Phase ML Training Benchmark
+            =============================================
+            Auto-detects GPU VRAM and selects batch sizes accordingly.
+            Fits any single-GPU Verda instance from V100 (16 GB) to B200 (192 GB).
+
+            Phase 1 — ResNet-152  (conv-heavy,      channels_last, SGD,   500 steps)
+            Phase 2 — ViT-L/16   (attention-heavy,  AdamW,                300 steps)
+
+            Both use synthetic ImageNet-scale data (224x224, 1000 classes),
+            AMP FP16 + torch.compile(reduce-overhead) + CosineAnnealingLR.
+            """
+            import os, time, json, sys, gc, math
+            import numpy as np
+            import torch
+            import torch.nn as nn
+            import torch.optim as optim
+            from torch.amp import autocast, GradScaler
+            import torchvision
+
+            NUM_CLASSES = 1000
+            INPUT_SIZE = 224
+
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            assert torch.cuda.is_available(), "CUDA is required for this benchmark"
+
+            # ── Detect GPU and determine batch sizes ──────────────────
+            gpu_props = torch.cuda.get_device_properties(0)
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_mem_total_gb = gpu_props.total_memory / (1024 ** 3)
+            sm_count = gpu_props.multi_processor_count
+            cuda_version = torch.version.cuda
+            pytorch_version = torch.__version__
+
+            # Universal batch sizes — sized to fit on ≤16 GB GPUs
+            resnet_batch = 64
+            vit_batch = 8
+            tier_label = "universal-16GB"
+            compile_mode = "default"  # no CUDA graphs — safe on MIG and small VRAM
+
+            # ── Phase configurations ──────────────────────────────────
+            PHASE_CONFIGS = [
+                {
+                    "name": "ResNet-152",
+                    "model_fn": lambda: torchvision.models.resnet152(weights=None, num_classes=NUM_CLASSES),
+                    "batch_size": resnet_batch,
+                    "num_steps": 500,
+                    "warmup_steps": 20,
+                    "lr": 0.1,
+                    "optimizer": "sgd",
+                    "channels_last": True,
+                },
+                {
+                    "name": "ViT-L/16",
+                    "model_fn": lambda: torchvision.models.vit_l_16(weights=None, num_classes=NUM_CLASSES),
+                    "batch_size": vit_batch,
+                    "num_steps": 300,
+                    "warmup_steps": 15,
+                    "lr": 1e-3,
+                    "optimizer": "adamw",
+                    "channels_last": False,
+                },
+            ]
+
+            # ── Header ────────────────────────────────────────────────
+            print(f"\n{'='*65}")
+            print(f"GPU-Agnostic ML Training Benchmark")
+            print(f"{'='*65}")
+            print(f"Device:          {device}")
+            print(f"GPU:             {gpu_name}")
+            print(f"GPU Memory:      {gpu_mem_total_gb:.1f} GB")
+            print(f"SM count:        {sm_count}")
+            print(f"CUDA:            {cuda_version}")
+            print(f"PyTorch:         {pytorch_version}")
+            print(f"VRAM Tier:       {tier_label}")
+            print(f"Batch sizes:     ResNet-152={resnet_batch}, ViT-L/16={vit_batch}")
+            print(f"AMP:             enabled (FP16)")
+            print(f"torch.compile:   enabled ({compile_mode})")
+            print(f"Data:            synthetic ImageNet-scale ({INPUT_SIZE}x{INPUT_SIZE}, {NUM_CLASSES} classes)")
+            print(f"Phases:          {', '.join(c['name'] for c in PHASE_CONFIGS)}")
+            print(f"{'='*65}\n")
+            sys.stdout.flush()
+
+            all_results = []
+
+            for phase_idx, cfg in enumerate(PHASE_CONFIGS, 1):
+                m_name     = cfg["name"]
+                batch_size = cfg["batch_size"]
+                num_steps  = cfg["num_steps"]
+                warmup     = cfg["warmup_steps"]
+                total_imgs = num_steps * batch_size
+
+                # Progress every ~10% of steps
+                progress_interval = max(1, num_steps // 10)
+
+                print(f"\n{'─'*65}")
+                print(f"Phase {phase_idx}/{len(PHASE_CONFIGS)}: {m_name} — Training")
+                print(f"{'─'*65}")
+                print(f"  Input:          {INPUT_SIZE}x{INPUT_SIZE} x 3 (synthetic)")
+                print(f"  Classes:        {NUM_CLASSES}")
+                print(f"  Batch size:     {batch_size}")
+                print(f"  Steps:          {num_steps} (+ {warmup} warmup)")
+                print(f"  Total images:   {total_imgs:,}")
+                print(f"  Optimizer:      {cfg['optimizer'].upper()}, lr={cfg['lr']}")
+                print(f"  channels_last:  {cfg['channels_last']}")
+                sys.stdout.flush()
+
+                # ── Build model ───────────────────────────────────────
+                print(f"  Building model...")
+                sys.stdout.flush()
+                model = cfg["model_fn"]()
+                model = model.to(device)
+                if cfg["channels_last"]:
+                    model = model.to(memory_format=torch.channels_last)
+                model.train()
+
+                print(f"  Compiling model with torch.compile(mode='{compile_mode}')...")
+                sys.stdout.flush()
+                model = torch.compile(model, mode=compile_mode)
+
+                num_params = sum(p.numel() for p in model.parameters())
+                param_mem = sum(p.numel() * p.element_size() for p in model.parameters()) / 1e9
+                print(f"  Parameters:     {num_params / 1e6:.1f} M  ({param_mem:.2f} GB FP32)")
+                sys.stdout.flush()
+
+                criterion = nn.CrossEntropyLoss()
+                if cfg["optimizer"] == "sgd":
+                    opt = optim.SGD(model.parameters(), lr=cfg["lr"],
+                                    momentum=0.9, weight_decay=1e-4)
+                else:
+                    opt = optim.AdamW(model.parameters(), lr=cfg["lr"],
+                                      weight_decay=0.05)
+
+                scheduler = optim.lr_scheduler.CosineAnnealingLR(opt, T_max=num_steps)
+                scaler = GradScaler("cuda")
+
+                # Pre-allocate synthetic batch (reused every step)
+                dummy_input = torch.randn(
+                    batch_size, 3, INPUT_SIZE, INPUT_SIZE, device=device
+                )
+                if cfg["channels_last"]:
+                    dummy_input = dummy_input.to(memory_format=torch.channels_last)
+                dummy_target = torch.randint(
+                    0, NUM_CLASSES, (batch_size,), device=device
+                )
+
+                # ── Warmup (excluded from metrics) ────────────────────
+                print(f"  Warming up ({warmup} steps)...")
+                sys.stdout.flush()
+                for _ in range(warmup):
+                    opt.zero_grad(set_to_none=True)
+                    with autocast("cuda"):
+                        out = model(dummy_input)
+                        loss = criterion(out, dummy_target)
+                    scaler.scale(loss).backward()
+                    scaler.step(opt)
+                    scaler.update()
+                torch.cuda.synchronize()
+                torch.cuda.reset_peak_memory_stats()
+
+                # ── Benchmark ─────────────────────────────────────────
+                print(f"  Running benchmark ({num_steps} steps)...")
+                sys.stdout.flush()
+                step_times = []
+                running_loss = 0.0
+                correct = 0
+                total_seen = 0
+
+                for step in range(num_steps):
+                    # Re-randomise targets each step for variety
+                    dummy_target = torch.randint(
+                        0, NUM_CLASSES, (batch_size,), device=device
+                    )
+
+                    torch.cuda.synchronize()
+                    t0 = time.perf_counter()
+
+                    opt.zero_grad(set_to_none=True)
+                    with autocast("cuda"):
+                        out = model(dummy_input)
+                        loss = criterion(out, dummy_target)
+                    scaler.scale(loss).backward()
+                    scaler.step(opt)
+                    scaler.update()
+                    scheduler.step()
+
+                    torch.cuda.synchronize()
+                    step_times.append(time.perf_counter() - t0)
+
+                    running_loss += loss.item()
+                    _, predicted = out.max(1)
+                    total_seen += batch_size
+                    correct += predicted.eq(dummy_target).sum().item()
+
+                    if (step + 1) % progress_interval == 0:
+                        elapsed = sum(step_times)
+                        tp = (step + 1) * batch_size / elapsed
+                        avg_loss = running_loss / (step + 1)
+                        acc = 100.0 * correct / total_seen
+                        gpu_peak = torch.cuda.max_memory_allocated(0) / 1e9
+                        print(
+                            f"    [{step+1:5d}/{num_steps}]  "
+                            f"loss: {avg_loss:.4f}  "
+                            f"acc: {acc:5.1f}%  "
+                            f"throughput: {tp:,.1f} img/s  "
+                            f"GPU peak: {gpu_peak:.1f} GB"
+                        )
+                        sys.stdout.flush()
+
+                # ── Compute metrics ───────────────────────────────────
+                step_times = np.array(step_times)
+                total_time = step_times.sum()
+                throughput = total_imgs / total_time
+                step_ms = step_times * 1000
+                gpu_mem_peak = torch.cuda.max_memory_allocated(0) / 1e9
+                final_loss = running_loss / num_steps
+                final_acc = 100.0 * correct / total_seen
+
+                result = {
+                    "phase": "training",
+                    "model": m_name,
+                    "device": str(device),
+                    "gpu_name": gpu_name,
+                    "gpu_memory_total_gb": round(gpu_mem_total_gb, 1),
+                    "batch_size": batch_size,
+                    "num_steps": num_steps,
+                    "warmup_steps": warmup,
+                    "optimizer": cfg["optimizer"],
+                    "lr": cfg["lr"],
+                    "total_images": total_imgs,
+                    "num_params_m": round(num_params / 1e6, 1),
+                    "total_time_sec": round(total_time, 3),
+                    "throughput_img_sec": round(throughput, 1),
+                    "final_loss": round(final_loss, 4),
+                    "final_train_acc": round(final_acc, 2),
+                    "step_time_ms": {
+                        "mean": round(float(np.mean(step_ms)), 2),
+                        "std": round(float(np.std(step_ms)), 2),
+                        "p50": round(float(np.percentile(step_ms, 50)), 2),
+                        "p95": round(float(np.percentile(step_ms, 95)), 2),
+                        "p99": round(float(np.percentile(step_ms, 99)), 2),
+                        "min": round(float(step_ms.min()), 2),
+                        "max": round(float(step_ms.max()), 2),
+                    },
+                    "gpu_mem_peak_gb": round(gpu_mem_peak, 2),
+                }
+                all_results.append(result)
+
+                print(f"\n  ── {m_name} Training Results ──")
+                print(f"  Throughput:        {throughput:,.1f} images/sec")
+                print(f"  Step time (mean):  {np.mean(step_ms):.2f} ms"
+                      f" (std: {np.std(step_ms):.2f})")
+                print(f"  Step time (p50):   {np.percentile(step_ms, 50):.2f} ms")
+                print(f"  Step time (p95):   {np.percentile(step_ms, 95):.2f} ms")
+                print(f"  Step time (p99):   {np.percentile(step_ms, 99):.2f} ms")
+                print(f"  Step time (min):   {step_ms.min():.2f} ms")
+                print(f"  Step time (max):   {step_ms.max():.2f} ms")
+                print(f"  Final loss:        {final_loss:.4f}")
+                print(f"  Final train acc:   {final_acc:.2f}%")
+                print(f"  GPU Peak Memory:   {gpu_mem_peak:.2f} GB"
+                      f" / {gpu_mem_total_gb:.1f} GB"
+                      f" ({100*gpu_mem_peak/gpu_mem_total_gb:.0f}%)")
+                sys.stdout.flush()
+
+                # ── Clean up before next phase ────────────────────────
+                del model, opt, scheduler, scaler, criterion
+                del dummy_input, dummy_target
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            # ── Combined JSON summary ─────────────────────────────────
+            summary = {
+                "benchmark": "gpu-agnostic-ml-training",
+                "gpu_name": gpu_name,
+                "gpu_memory_total_gb": round(gpu_mem_total_gb, 1),
+                "vram_tier": tier_label,
+                "phases": all_results,
+            }
+
+            print(f"\n{'='*65}")
+            print(f"COMBINED TRAINING BENCHMARK RESULTS")
+            print(f"{'='*65}")
+            for r in all_results:
+                print(f"  {r['model']:20s}  "
+                      f"{r['throughput_img_sec']:>10,.1f} img/s  "
+                      f"{r['step_time_ms']['p50']:>8.2f} ms p50  "
+                      f"{r['gpu_mem_peak_gb']:>6.2f} GB peak")
+            print(f"{'='*65}")
+
+            print(f"\nJSON_RESULTS_START")
+            print(json.dumps(summary, indent=2))
+            print(f"JSON_RESULTS_END")
+            sys.stdout.flush()
+            print("\nTraining benchmark complete.")
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 4Gi
