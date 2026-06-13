@@ -158,10 +158,17 @@ spec:
             - --emit-per-nodegroup-metrics=true
             - --cloud-provider=externalgrpc
             - --cloud-config=/config/cloud-config
-            - --max-node-provision-time=60m
+            - --max-nodes-total=7
+            - --max-node-provision-time=15m
             - --scale-down-enabled=true
-            - --scale-down-delay-after-add=60m
-            - --scale-down-unneeded-time=60m # for testing
+            - --scale-down-delay-after-add=10m
+            - --scale-down-unneeded-time=60m
+            - --scale-down-delay-after-delete=0s
+            - --scale-down-delay-after-failure=3m
+            - --ignore-daemonsets-utilization=true
+            - --skip-nodes-with-local-storage=false
+            - --expander=least-waste
+            - --startup-taint=nvidia.com/gpu
           volumeMounts:
             #- name: grpc-client-tls
             #  mountPath: /etc/externalgrpc-client
