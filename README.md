@@ -1,150 +1,68 @@
-# Verda Cloud Provider for Kubernetes Cluster Autoscaler
+# Verda external cloud provider for Cluster Autoscaler
 
-A gRPC-based external cloud provider that enables the [Kubernetes Cluster Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) to dynamically provision and manage GPU and CPU nodes on [Verda Cloud](https://verda.com) (formerly DataCrunch).
+This repository contains a Python implementation of the Kubernetes Cluster Autoscaler **external gRPC cloud-provider interface** for Verda Cloud (formerly DataCrunch). It lets Cluster Autoscaler provision and remove Verda worker nodes in an existing Kubernetes cluster. It is not a Kubernetes cloud-controller-manager, a second cluster scheduler, or an offloader to a separate HPC system.
 
-## What This Repo Contains
+The project was developed for Max Koskinen's 2026 master's thesis on bursting an on-premises K3s cluster to Verda GPU capacity. The thesis evaluation used an Aalto test cluster (three K3s servers and two local GPU workers), with a WireGuard gateway to cloud workers. Those environment-specific examples are not a turnkey deployment for another cluster.
 
-This repository implements the [Cluster Autoscaler external gRPC cloud provider interface](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/externalgrpc/README.md). It runs as a standalone gRPC service that the Cluster Autoscaler communicates with to scale node groups up and down on Verda Cloud infrastructure.
+## How it works
 
-### What the Service Provides
+1. Cluster Autoscaler sees an eligible unschedulable Pod and calls the provider's external gRPC service on port 8086. Configured Verda instance types and locations become autoscaler node groups, with per-group minimum and maximum sizes.
+2. On scale-out, the provider prepares a WireGuard peer and startup script and requests a Verda instance. The intended K3s agent joins the **same** on-premises cluster over the tunnel. The provider supplies synthetic node resources, labels and taints to autoscaler for scheduling simulation. Review the current tunnel bootstrap before relying on this sequence: the packaged template does not set an initial gateway `Endpoint` in its WireGuard peer configuration.
+3. Once a node is ready and the NVIDIA GPU Operator has exposed its GPU resources, eligible Pods can run there. Cluster Autoscaler initiates scale-in when the node is unneeded; the provider removes its cloud instance and WireGuard peer. A background service cleans up stale Kubernetes node objects.
 
-- **Node group management** — Exposes configurable node groups (GPU and CPU instance types) to the Cluster Autoscaler, each with independent min/max size, location, and instance type settings.
-- **Instance lifecycle** — Provisions new Verda Cloud instances when pods are pending due to insufficient capacity, and deletes them when the Cluster Autoscaler determines they are no longer needed.
-- **Node bootstrapping** — Generates startup scripts (via Jinja2 templates) that automatically join newly provisioned instances to the Kubernetes cluster, including WireGuard tunnel setup for secure networking.
-- **WireGuard networking** — Manages WireGuard peer configuration so cloud nodes can securely communicate with the on-premise cluster over an encrypted tunnel.
-- **Instance metadata & pricing** — Fetches instance type metadata (CPU, memory, GPU resources) and pricing information from the Verda API so the autoscaler can make informed scheduling and cost-aware decisions.
-- **Node cleanup** — Runs a lightweight background service that monitors and cleans up stale Kubernetes node objects for instances that no longer exist in the cloud.
-- **mTLS support** — Optionally secures the gRPC endpoint with mutual TLS.
+The thesis's intended placement policy uses `topology.kubernetes.io/zone=verda` and taint `node-role.kubernetes.io/cloud=true:NoSchedule`: cloud-bound Pods select the zone and tolerate the taint. An appropriate GPU request (for example `nvidia.com/gpu: 1`) is also needed for GPU workloads. The maximum node-group size limits the number of provisioned instances; this prototype does not implement a complete cost-admission policy. Review the actual node labels, MIG resource naming, and GPU Operator setup before using example workloads.
 
-### Repository Structure
+## Repository map
 
-```
-src/verda_cloud_provider/   # The cloud provider gRPC service
-  main.py                   # Entry point — starts the gRPC server
-  provider.py               # Top-level provider, initializes all services
-  provider_methods.py       # gRPC method implementations (NodeGroups, IncreaseSize, DeleteNodes, etc.)
-  settings.py               # Configuration models (node groups, WireGuard, Kubernetes)
-  state_store.py            # Tracks node group target sizes and instance state
-  gpu_types.py              # GPU type definitions
-  services/                 # Internal services
-    wg_service.py             # WireGuard peer management
-    startup_script_service.py # Generates cloud-init scripts for new instances
-    node_cleanup_service.py   # Background cleanup of orphaned k8s nodes
-    node_template_service.py  # Builds node templates for the autoscaler
-    instance_metadata_service.py  # Caches instance type metadata from Verda API
+- `src/verda_cloud_provider/`: provider implementation, including gRPC methods, API metadata/availability caches, WireGuard management, startup-script rendering and cleanup.
+- `src/verda_cloud_provider/templates/`: **packaged templates used at runtime** unless `script_template_path` overrides them. The top-level `templates/` directory contains older copies; do not assume it controls the deployed image.
+- `src/clusterautoscaler/`, `src/k8s/`: generated protobuf stubs; `third_party/` contains source submodules for generation.
+- `config.yaml`: a local example configuration, **not** the Aalto deployment configuration. `manifests/provider/aalto/configmap.yaml` and `manifests/provider/minikube/configmap.yaml` contain different environment-specific node groups and settings. Configured prices are examples, not live Verda quotations.
+- `manifests/provider/aalto/`, `manifests/provider/minikube/`: alternative provider deployment examples; `manifests/autoscaler/` contains the autoscaler and optional monitoring resource; `manifests/routemanager/` is an Aalto-specific route example.
+- `manifests/multi-run/`, `manifests/nvidia-test/`: workload manifests; `deploy/gpu-operator/`: GPU Operator values; `scripts/`: development and installation helpers.
 
-src/clusterautoscaler/      # Generated protobuf/gRPC stubs for the external provider interface
-src/k8s/                    # Generated protobuf stubs for Kubernetes types
+## Getting started
 
-templates/                  # Jinja2 startup script templates (k3s node join, WireGuard setup)
-manifests/                  # Kubernetes manifests
-  provider/                   # Deployment manifests for the cloud provider service
-  autoscaler/                 # Cluster Autoscaler deployment and config
-  routemanager/               # DaemonSet for managing routes to cloud nodes via WireGuard
-  examples/                   # Example GPU/CPU test workloads
-deploy/
-  gpu-operator/               # NVIDIA GPU Operator Helm values for cloud worker nodes
-scripts/                    # Helper scripts (proto generation, dev deployment, GPU operator install)
-```
+**Prerequisites:** Python 3.11+, Verda API credentials, an existing Kubernetes cluster with a working path for cloud workers to join, and appropriate WireGuard/K3s/GPU configuration. Container deployment additionally requires Docker or another compatible builder. The thesis evaluated K3s `v1.32.3+k3s1`, but checked-in templates and autoscaler manifests may target different versions; do not treat the thesis version as a compatibility guarantee for the current tree.
 
-## Getting Started
-
-### Prerequisites
-
-- Python 3.11+
-- A [Verda Cloud](https://verda.com) account with API credentials
-- A Kubernetes cluster (tested with k3s v1.32)
-- Docker (for containerized deployment)
-
-### Configuration
-
-The provider is configured via a `config.yaml` file. A minimal node group looks like:
-
-```yaml
-kubernetes:
-  endpoint: "<kubernetes api endpoint>"
-
-node_groups:
-  1V100-6V-FIN-01:
-    instance_type: "1V100.6V"
-    image: "ubuntu-24.04-cuda-12.6-docker"
-    min_size: 0
-    max_size: 10
-    location: "FIN-01"
-    ssh_key_ids:
-      - "<your-ssh-key-id>"
-    hourly_price: 0.60
-    contract: "SPOT"
-    pricing: "FIXED_PRICE"
-    labels:
-      verda.com/gpu: "true"
-      node.kubernetes.io/role: "cloud-worker"
-    taints:
-      node-role.kubernetes.io/cloud: "true:NoSchedule"
-```
-
-API credentials are provided via environment variables or a `.env` file:
-
-```
-VERDA_CLIENT_ID=your-client-id
-VERDA_CLIENT_SECRET=your-client-secret
-```
-
-### Running Locally
+The provider reads a YAML configuration file. At minimum it needs a Kubernetes endpoint and one node group, alongside Verda credentials in `VERDA_CLIENT_ID` and `VERDA_CLIENT_SECRET`. See `config.yaml` for the full **example** schema; adjust instance types, image names, locations, prices, SSH key IDs, network ranges, labels/taints and capacity bounds to your own environment. The Aalto ConfigMap has its own expanded configuration and must not be silently substituted for the root file.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
-
+export VERDA_CLIENT_ID='<client-id>'
+export VERDA_CLIENT_SECRET='<client-secret>'
 verda-cloud-provider --config config.yaml --port 8086 --log-level INFO
 ```
 
-### Docker
+Starting the service alone does **not** create a working cloud-bursting cluster. The selected template must match your Kubernetes distribution and network, and Cluster Autoscaler must be configured to connect to it. Do not commit credentials or a K3s join token.
+
+To build the container image locally:
 
 ```bash
-# Build
-docker build -t verda-cloud-provider:latest .
-
-# Run
-docker run -d \
-  --name verda-provider \
-  -p 8086:8086 \
-  -v $(pwd)/config.yaml:/config/config.yaml:ro \
-  --env-file=.env \
-  verda-cloud-provider:latest
+docker build -t verda-cloud-provider:local .
 ```
 
-A prebuilt image is also published to GHCR on tagged releases:
+The Aalto manifest currently references `ghcr.io/maxkoskinen/ca-verda:latest`; verify the image and tag you intend to deploy. Review `manifests/provider/aalto/` or `manifests/provider/minikube/` **as alternatives**, not as a combined set. They require different Secrets and site settings. The route-manager manifest also contains site-specific routing and node selectors. See the manifest contents before applying anything to a cluster.
 
-```
-ghcr.io/maxkoskinen/ca-verda:latest
-```
+## Thesis evidence and limits
 
-### Kubernetes Deployment
+The thesis reports a smoke test in which a Pending CUDA `nbody` Pod triggered a cloud GPU node, completed successfully, and was followed by scale-down. A separate **single-node** heterogeneous batch on a two-A100 instance with MIG reported 21 GPU workload outcomes (20 Job completions plus one Ollama serving workload) and 12 CPU-only Job completions. The thesis labels Ollama as a completion in its results table, though the checked-in Ollama manifest is a long-running Deployment. These are observations of that test environment, **not** a provisioning-time SLA, cross-site MPI benchmark, production-scale throughput result or guarantee that the current manifests reproduce the historical run. In particular, the checked-in autoscaler flags, startup templates and some Job parallelism values differ from the thesis excerpts.
 
-```bash
-# Deploy the provider
-kubectl apply -f manifests/provider/
-
-# Deploy the Cluster Autoscaler
-kubectl apply -f manifests/autoscaler/
-
-# Deploy the route manager (for WireGuard routing on on-premise nodes)
-kubectl apply -f manifests/routemanager/
-```
+Cross-site storage, robust tunnel-failure handling, distributed jobs, fine-grained cost control, DRA and separate-cluster offloading are discussed as limitations or future work in the thesis, not demonstrated features of this repository.
 
 ## Contributions
 
-The Kubernetes manifests for the **route manager** (`manifests/routemanager/`) base template and the **GPU Operator** Helm values (`deploy/gpu-operator/values.yaml`) were contributed by **Kimmo Rantala**.
+The route-manager base manifest (`manifests/routemanager/`) and GPU Operator Helm values (`deploy/gpu-operator/values.yaml`) were contributed by Kimmo Rantala.
 
 ## License
 
-[MIT License](LICENSE)
+See the repository's [GNU General Public License, version 3](LICENSE). The former README incorrectly called it MIT; this documentation change does not alter the license file.
 
-## Resources
+## References
 
-- [Verda Cloud Documentation](https://docs.verda.com/)
+- Max Koskinen, 2026 master's thesis: implementation and architecture (sections on the Verda external provider and WireGuard networking), evaluation, and limitations.
 - [Kubernetes Cluster Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler)
-- [External gRPC Cloud Provider Guide](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/externalgrpc/README.md)
+- [External gRPC cloud-provider interface](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/cloudprovider/externalgrpc/README.md)
 - [Verda Python SDK](https://github.com/DataCrunch-io/datacrunch-python)
