@@ -48,7 +48,8 @@ spec:
             - /bin/sh
             - -c
             - |
-              ip route replace 10.200.0.0/16 via "${WG_GATEWAY_ADDR}"
+              # Match the tunnel network in the Aalto provider ConfigMap.
+              ip route replace 10.200.0.0/24 via "${WG_GATEWAY_ADDR}"
           securityContext:
             privileged: true
       containers:
