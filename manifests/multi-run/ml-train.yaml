@@ -1,11 +1,11 @@
 ##
 ## GPU-Agnostic ML Training Benchmark — Two-Phase GPU Stress
 ##
-## This benchmark auto-detects GPU VRAM at runtime and selects appropriate
-## batch sizes for any single-GPU Verda instance from V100 (16 GB) to
-## B200 (192 GB). No instance-type nodeSelector is needed.
+## This benchmark reports GPU VRAM but uses fixed batch sizes (64/8)
+## intended for GPUs with at least 16 GB of VRAM. The Job is currently pinned
+## to instance type 2A100.44V; portability requires adjusting its nodeSelector.
 ##
-## Batch Sizes (universal — fits ≤16 GB GPUs):
+## Batch sizes (chosen for 16 GB or larger GPUs, not dynamically adapted):
 ##   ResNet-152 = 64,  ViT-L/16 = 8
 ##   torch.compile mode = default (no CUDA graphs)
 ##
@@ -15,7 +15,7 @@
 ##
 ## Both phases use ImageNet-scale synthetic data (224×224, 1000 classes)
 ## so the benchmark isolates raw GPU compute from storage/network I/O.
-## Mixed-precision (AMP FP16) + torch.compile(reduce-overhead) throughout.
+## Mixed-precision (AMP FP16) + torch.compile(default) throughout.
 ##
 ## Expected runtime: ~10-40 min depending on GPU model and batch size.
 ##
@@ -79,14 +79,13 @@ spec:
             """
             GPU-Agnostic Two-Phase ML Training Benchmark
             =============================================
-            Auto-detects GPU VRAM and selects batch sizes accordingly.
-            Fits any single-GPU Verda instance from V100 (16 GB) to B200 (192 GB).
+            Reports GPU VRAM; uses fixed batch sizes intended for at least 16 GB.
 
             Phase 1 — ResNet-152  (conv-heavy,      channels_last, SGD,   500 steps)
             Phase 2 — ViT-L/16   (attention-heavy,  AdamW,                300 steps)
 
             Both use synthetic ImageNet-scale data (224x224, 1000 classes),
-            AMP FP16 + torch.compile(reduce-overhead) + CosineAnnealingLR.
+            AMP FP16 + torch.compile(default) + CosineAnnealingLR.
             """
             import os, time, json, sys, gc, math
             import numpy as np
