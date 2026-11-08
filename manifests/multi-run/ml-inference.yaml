@@ -2,8 +2,8 @@
 ## GPU-Agnostic ML Inference Benchmark
 ##
 ## Auto-detects GPU VRAM at runtime and selects appropriate batch sizes,
-## making this manifest portable across any single-GPU Verda instance
-## from V100 (16 GB) through B200 (192 GB).
+## across VRAM tiers. The current nodeSelector pins the Job to 2A100.44V;
+## change it before using another instance type.
 ##
 ## VRAM tiers and batch sizes:
 ##   ≤20 GB  (V100 16GB / MIG)    — ResNet 256,  ViT 32   (compile=default)
@@ -24,7 +24,7 @@
 ## synthetic 224×224 input, and torch.cuda.synchronize() bracketing
 ## for accurate per-batch latency measurement.
 ##
-## nodeSelector targets only the Verda zone — no instance-type pinning.
+## nodeSelector targets the Verda zone and instance type 2A100.44V.
 ## Expected runtime: ~10-40 min depending on GPU model and batch size.
 ##
 apiVersion: batch/v1
@@ -93,13 +93,13 @@ spec:
               GPU-Agnostic ML Inference Benchmark
               ====================================
               Auto-detects GPU VRAM and chooses batch sizes accordingly.
-              Fits any single-GPU Verda instance from V100 (16 GB) to B200 (192 GB).
+              Job placement is currently pinned to 2A100.44V in nodeSelector.
 
               Phase 1 — ResNet-152  (conv-heavy,      3000 batches, 224x224, channels_last)
               Phase 2 — ViT-L/16   (attention-heavy,  2000 batches, 224x224)
 
-              Uses synthetic input to isolate GPU compute from I/O.
-              AMP FP16 + torch.compile(reduce-overhead) + channels_last for convolutions.
+              Uses synthetic input for inference; pretrained weights may need download.
+              AMP FP16 + torch.compile(default or reduce-overhead by VRAM tier).
               Measures sustained throughput and latency percentiles per model.
               """
               import os, time, json, sys, gc

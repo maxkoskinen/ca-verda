@@ -4,12 +4,11 @@
 ## Uses the NVIDIA CUDA nbody sample to stress-test GPU compute
 ## with a large particle count and extended iteration run.
 ##
-## Default nbody is 256K bodies / 10 iterations — this config
-## uses 1M bodies / 100 iterations for a heavier workload that
-## better saturates modern GPUs.
+## This config uses 1,048,576 bodies / 1,000 iterations.
 ##
-## Runs 2 pods in parallel (completions: 2, parallelism: 2)
-## so two instances are scheduled when applied.
+## Runs 12 Job completions with at most 2 Pods in parallel.
+## Parallelism does not itself imply two cloud instances: placement depends
+## on each Pod's resource requests and available node capacity.
 ##
 ## Expected runtime: ~5-20 min depending on GPU model.
 ##
